@@ -1,35 +1,35 @@
 package main
 
 import (
-	"GraphQL_piano/pianocheckroot"
-	"GraphQL_piano/pianoconfig"
-	"GraphQL_piano/pianographql"
-	"GraphQL_piano/pianologger"
-	"GraphQL_piano/pianomysql"
+	"hcc/piano/checkroot"
+	"hcc/piano/config"
+	"hcc/piano/graphql"
+	"hcc/piano/logger"
+	"hcc/piano/mysql"
 	"net/http"
 )
 
 func main() {
-	if !pianocheckroot.CheckRoot() {
+	if !checkroot.CheckRoot() {
 		return
 	}
 
-	if !pianologger.Prepare() {
+	if !logger.Prepare() {
 		return
 	}
-	defer pianologger.FpLog.Close()
+	defer logger.FpLog.Close()
 
-	err := pianomysql.Prepare()
+	err := mysql.Prepare()
 	if err != nil {
 		return
 	}
-	defer pianomysql.Db.Close()
+	defer mysql.Db.Close()
 
-	http.Handle("/graphql", pianographql.GraphqlHandler)
+	http.Handle("/graphql", graphql.GraphqlHandler)
 
-	pianologger.Logger.Println("Server is running on port " + pianoconfig.HTTPPort)
-	err = http.ListenAndServe(":"+pianoconfig.HTTPPort, nil)
+	logger.Logger.Println("Server is running on port " + config.HTTPPort)
+	err = http.ListenAndServe(":"+config.HTTPPort, nil)
 	if err != nil {
-		pianologger.Logger.Println("Failed to prepare http server!")
+		logger.Logger.Println("Failed to prepare http server!")
 	}
 }
