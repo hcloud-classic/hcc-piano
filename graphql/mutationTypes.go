@@ -1,49 +1,12 @@
 package graphql
 
 import (
-	"errors"
-	"fmt"
 	"github.com/graphql-go/graphql"
-	"hcc/piano/config"
 	"hcc/piano/logger"
 	"hcc/piano/mysql"
 	"hcc/piano/types"
 	"hcc/piano/uuidgen"
-	"io/ioutil"
-	"net/http"
-	"net/url"
-	"strings"
 )
-
-// CheckServerUUID : Check if server UUID is exist in violin server module
-func CheckServerUUID(serverUUID string) error {
-	query := fmt.Sprintf("%s", "query Select_Server {\n  server(uuid: \""+serverUUID+"\") {\n    uuid\n    subnet_id\n    os\n    server_name\n    server_disc\n    cpu\n    memory\n    disk_size\n    status\n    user_uuid\n    created_time\n }\n}\n")
-
-	resp, err := http.PostForm("http://localhost:"+config.ViolinHTTPPort+
-		"/graphql", url.Values{"query": {query},
-		"variables":     {"{}"},
-		"operationName": {"Select_Server"}})
-
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	// Check response
-	respBody, err := ioutil.ReadAll(resp.Body)
-	if err == nil {
-		str := string(respBody)
-		println(str)
-	} else {
-		return err
-	}
-
-	if strings.Contains(string(respBody), "null") {
-		return errors.New("server UUID is not exist")
-	}
-
-	return nil
-}
 
 var mutationTypes = graphql.NewObject(graphql.ObjectConfig{
 	Name: "Mutation",
@@ -80,12 +43,6 @@ var mutationTypes = graphql.NewObject(graphql.ObjectConfig{
 					Size:       params.Args["size"].(int),
 					Type:       params.Args["type"].(string),
 					ServerUUID: params.Args["server_uuid"].(string),
-				}
-
-				err = CheckServerUUID(volume.ServerUUID)
-				if err != nil {
-					logger.Logger.Println(err)
-					return nil, nil
 				}
 
 				sql := "insert into volume(uuid, size, type, server_uuid) values (?, ?, ?, ?)"
