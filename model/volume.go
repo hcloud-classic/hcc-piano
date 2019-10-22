@@ -1,4 +1,4 @@
-package types
+package model
 
 // Volume : Struct of volume
 type Volume struct {

@@ -1,13 +1,10 @@
 package main
 
 import (
-	"hcc/piano/checkroot"
-	"hcc/piano/config"
-	"hcc/piano/graphql"
-	"hcc/piano/logger"
-	"hcc/piano/mysql"
-	"net/http"
-	"strconv"
+	"hcc/piano/action/rabbitmq"
+	"hcc/piano/lib/checkroot"
+	"hcc/piano/lib/config"
+	"hcc/piano/lib/logger"
 )
 
 func main() {
@@ -22,19 +19,25 @@ func main() {
 		_ = logger.FpLog.Close()
 	}()
 
-	err := mysql.Prepare()
+	config.Parser()
+
+	err := rabbitmq.PrepareChannel()
 	if err != nil {
-		return
+		logger.Logger.Panic(err)
 	}
 	defer func() {
-		_ = mysql.Db.Close()
+		_ = rabbitmq.Channel.Close()
 	}()
-
-	http.Handle("/graphql", graphql.GraphqlHandler)
-
-	logger.Logger.Println("Server is running on port " + strconv.Itoa(int(config.HTTP.Port)))
-	err = http.ListenAndServe(":"+strconv.Itoa(int(config.HTTP.Port)), nil)
+	defer func() {
+		_ = rabbitmq.Connection.Close()
+	}()
+	err = rabbitmq.XXX()
 	if err != nil {
-		logger.Logger.Println("Failed to prepare http server!")
+		logger.Logger.Panic(err)
 	}
+
+	forever := make(chan bool)
+
+	logger.Logger.Println(" [*] Waiting for messages. To exit press Ctrl+C")
+	<-forever
 }
