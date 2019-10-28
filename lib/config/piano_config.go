@@ -2,7 +2,7 @@ package config
 
 import "github.com/Terry-Mao/goconf"
 
-var configLocation = "/etc/piano/piano.conf"
+var configLocation = "/etc/hcc/piano/piano.conf"
 
 type pianoConfig struct {
 	MysqlConfig    *goconf.Section
