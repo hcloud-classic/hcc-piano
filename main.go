@@ -1,16 +1,15 @@
 package main
 
 import (
-	"hcc/piano/checkroot"
-	"hcc/piano/config"
-	"hcc/piano/graphql"
-	"hcc/piano/logger"
-	"hcc/piano/mysql"
+	"hcc/piano/lib/config"
+	"hcc/piano/lib/logger"
+	"hcc/piano/lib/mysql"
+	"hcc/piano/lib/syscheck"
 	"net/http"
 )
 
 func main() {
-	if !checkroot.CheckRoot() {
+	if !syscheck.CheckRoot() {
 		return
 	}
 
@@ -24,8 +23,6 @@ func main() {
 		return
 	}
 	defer mysql.Db.Close()
-
-	http.Handle("/graphql", graphql.GraphqlHandler)
 
 	logger.Logger.Println("Server is running on port " + config.HTTPPort)
 	err = http.ListenAndServe(":"+config.HTTPPort, nil)

@@ -1,8 +1,8 @@
 package mysql
 
 import (
-	"hcc/piano/checkroot"
-	"hcc/piano/logger"
+	"hcc/piano/lib/logger"
+	"hcc/piano/lib/syscheck"
 	"testing"
 )
 

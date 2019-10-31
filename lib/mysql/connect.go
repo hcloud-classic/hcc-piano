@@ -2,9 +2,8 @@ package mysql
 
 import (
 	"database/sql"
-	_ "github.com/go-sql-driver/mysql" // Needed for connect mysql
-	"hcc/piano/config"
-	"hcc/piano/logger"
+	"hcc/piano/lib/config"
+	"hcc/piano/lib/logger"
 )
 
 // Db : Pointer of mysql connection

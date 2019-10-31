@@ -13,4 +13,4 @@ var MysqlAddress = "192.168.110.240"
 var MysqlPort = "3306"
 
 // MysqlDatabase : MySQL server database name of module
-var MysqlDatabase = "oboe"
+var MysqlDatabase = "piano"
