@@ -1,7 +1,7 @@
 package logger
 
 import (
-	"hcc/piano/checkroot"
+	"hcc/piano/lib/checkroot"
 	"testing"
 )
 
@@ -20,5 +20,7 @@ func Test_Logger_Prepare(t *testing.T) {
 	if !Prepare() {
 		t.Fatal("Failed to prepare logger!")
 	}
-	defer FpLog.Close()
+	defer func() {
+		_ = FpLog.Close()
+	}()
 }
