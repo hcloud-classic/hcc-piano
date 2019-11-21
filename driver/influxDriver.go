@@ -3,6 +3,8 @@ package driver
 import (
 	"fmt"
 	"github.com/influxdata/influxdb1-client/models"
+	"strconv"
+
 	//	"time"
 	//	"hcc/piano/lib/logger"
 	"hcc/piano/lib/influxdb"
@@ -42,8 +44,13 @@ func GetInfluxData(args map[string]interface{}) (interface{}, error) {
 	telegraf.UUID = fmt.Sprintf("%v", queryResult.(models.Row).Tags["host"])
 
 	for i := 0; i < len(queryResult.(models.Row).Values); i++ {
-		s.Time = fmt.Sprintf("%v", queryResult.(models.Row).Values[i][0])
-		s.Value = fmt.Sprintf("%v", queryResult.(models.Row).Values[i][1])
+
+		//s.Time = fmt.Sprintf("%v", queryResult.(models.Row).Values[i][0])
+		s.Time = i
+
+		valueStr := fmt.Sprintf("%v", queryResult.(models.Row).Values[i][1])
+		valueFloat, _ := strconv.ParseFloat(valueStr, 64)
+		s.Value = int(valueFloat * 100)
 		series = append(series, s)
 	}
 	telegraf.Series = series

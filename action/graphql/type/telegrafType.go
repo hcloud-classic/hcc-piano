@@ -8,10 +8,10 @@ var TelegrafType = graphql.NewObject(
 	graphql.ObjectConfig{
 		Name: "telegraf",
 		Fields: graphql.Fields{
-			"uuid": &graphql.Field{
+			"id": &graphql.Field{
 				Type: graphql.String,
 			},
-			"series": &graphql.Field{
+			"data": &graphql.Field{
 				Type: graphql.NewList(SeriesType),
 			},
 		},
@@ -22,11 +22,11 @@ var SeriesType = graphql.NewObject(
 	graphql.ObjectConfig{
 		Name: "seriesType",
 		Fields: graphql.Fields{
-			"time": &graphql.Field{
-				Type: graphql.String,
+			"x": &graphql.Field{
+				Type: graphql.Int,
 			},
-			"value": &graphql.Field{
-				Type: graphql.String,
+			"y": &graphql.Field{
+				Type: graphql.Int,
 			},
 		},
 	},
