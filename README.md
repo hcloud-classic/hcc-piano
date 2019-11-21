@@ -1,3 +1,3 @@
-[![pipeline status](http://118.130.73.5:8100/ish/graphql_cello/badges/master/pipeline.svg)](http://118.130.73.5:8100/ish/graphql_cello/pipelines)
-[![coverage report](http://118.130.73.5:8100/ish/graphql_cello/badges/master/coverage.svg)](http://118.130.73.5:8100/ish/graphql_cello/commits/master)
-[![go report](http://118.130.73.5:8100/ish/graphql_cello_badge/raw/master/goreport_badge.svg)](http://118.130.73.5:8100/ish/graphql_cello/commits/master)
+[![pipeline status](http://118.130.73.5:8100/ish/piano/badges/master/pipeline.svg)](http://118.130.73.5:8100/ish/piano/pipelines)
+[![coverage report](http://118.130.73.5:8100/ish/piano/badges/master/coverage.svg)](http://118.130.73.5:8100/ish/piano/commits/master)
+[![go report](http://118.130.73.5:8100/ish/piano_badge/raw/master/goreport_badge.svg)](http://118.130.73.5:8100/ish/piano/commits/master)

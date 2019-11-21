@@ -1,9 +1,10 @@
-package _type
+package graphqlType
 
 import (
 	"github.com/graphql-go/graphql"
 )
 
+// TelegrafType : GraphQL type of Telegraf
 var TelegrafType = graphql.NewObject(
 	graphql.ObjectConfig{
 		Name: "telegraf",
@@ -18,6 +19,7 @@ var TelegrafType = graphql.NewObject(
 	},
 )
 
+// SeriesType : GraphQL type of Series
 var SeriesType = graphql.NewObject(
 	graphql.ObjectConfig{
 		Name: "seriesType",

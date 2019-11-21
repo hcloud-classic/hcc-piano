@@ -24,7 +24,7 @@ type InfluxInfo struct {
 	Clients  []influxdbClient.Client
 }
 
-// influxInfo - cgs
+// Influx - cgs
 var Influx InfluxInfo
 
 // Prepare - cgs
