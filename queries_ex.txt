@@ -1,0 +1,9 @@
+query {
+  telegraf(metric:"", subMetric:"", period:"", aggregateType:"", duration:"", uuid:""){
+		uuid,
+    series {
+      time
+      value
+    }
+  }
+}

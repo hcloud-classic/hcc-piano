@@ -1,4 +1,4 @@
 package config
 
-// HTTPPort : Port number for listening graphql request via http server
+// Port - cgs
 var HTTPPort = "8001"

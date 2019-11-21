@@ -2,12 +2,12 @@ package mysql
 
 import (
 	"hcc/piano/lib/logger"
-	"hcc/piano/lib/syscheck"
+	checkRoot "hcc/piano/lib/syscheck"
 	"testing"
 )
 
 func Test_DB_Prepare(t *testing.T) {
-	if !checkroot.CheckRoot() {
+	if !checkRoot.CheckRoot() {
 		t.Fatal("Failed to get root permission!")
 	}
 
