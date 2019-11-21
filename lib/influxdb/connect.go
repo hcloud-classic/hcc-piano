@@ -129,16 +129,21 @@ func (s *InfluxInfo) GenerateQuery(metric string, subMetric string, period strin
 		case "usage_system":
 			query = influxBuilder.NewQuery().On(metric).
 				Field("usage_system", aggregateType)
+			break
 		case "usage_user":
 			query = influxBuilder.NewQuery().On(metric).
 				Field("usage_system", aggregateType)
+			break
 		}
-	//case "mem":
-	//	switch subMetric {
-	//	case "usage_system":
-	//		query = influxBuilder.NewQuery().On(metric).
-	//			Field("usage_system", aggregateType)
-	//	}
+		break
+	case "mem":
+		switch subMetric {
+		case "used_percent":
+			query = influxBuilder.NewQuery().On(metric).
+				Field("used_percent", aggregateType)
+			break
+		}
+		break
 	//query = influxBuilder.NewQuery().On(metric).
 	//	//Field("usage_utilization", aggregateType).
 	//	Field("usage_system", aggregateType).
