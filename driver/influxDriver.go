@@ -54,6 +54,7 @@ func GetInfluxData(args map[string]interface{}) (interface{}, error) {
 		series = append(series, s)
 	}
 	telegraf.Series = series
+	telegraf.SubMetric = subMetric
 
 	return telegraf, nil
 }

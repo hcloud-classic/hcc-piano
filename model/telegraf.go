@@ -2,8 +2,9 @@ package model
 
 // Telegraf - cgs
 type Telegraf struct {
-	UUID   string   `json:"id"`
-	Series []Series `json:"data"`
+	SubMetric string   `json:"subMetric"`
+	UUID      string   `json:"id"`
+	Series    []Series `json:"data"`
 }
 
 // Series - cgs

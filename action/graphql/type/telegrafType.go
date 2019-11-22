@@ -9,6 +9,9 @@ var TelegrafType = graphql.NewObject(
 	graphql.ObjectConfig{
 		Name: "telegraf",
 		Fields: graphql.Fields{
+			"subMetric": &graphql.Field{
+				Type: graphql.String,
+			},
 			"id": &graphql.Field{
 				Type: graphql.String,
 			},
