@@ -72,6 +72,7 @@ func (s *InfluxInfo) ReadMetric(metric string, subMetric string, period string, 
 		return nil, err
 	}
 	logger.Logger.Println("ReadMetric query : " + queryString)
+	fmt.Println("ReadMetric query : " + queryString)
 
 	query := influxdbClient.NewQuery(queryString, s.Database, "")
 	res, _ := influx.Query(query)
@@ -139,6 +140,30 @@ func (s *InfluxInfo) GenerateQuery(metric string, subMetric string, period strin
 	case "mem":
 		switch subMetric {
 		case "used_percent":
+			query = influxBuilder.NewQuery().On(metric).
+				Field("used_percent", aggregateType)
+			break
+		case "swap_total":
+			query = influxBuilder.NewQuery().On(metric).
+				Field("swap_total", aggregateType)
+			break
+		}
+		break
+	case "disk":
+		switch subMetric {
+		case "used_percent":
+			query = influxBuilder.NewQuery().On(metric).
+				Field("used_percent", aggregateType)
+			break
+		}
+		break
+	case "net":
+		switch subMetric {
+		case "bytes_recv":
+			query = influxBuilder.NewQuery().On(metric).
+				Field("used_percent", aggregateType)
+			break
+		case "bytes_sent":
 			query = influxBuilder.NewQuery().On(metric).
 				Field("used_percent", aggregateType)
 			break

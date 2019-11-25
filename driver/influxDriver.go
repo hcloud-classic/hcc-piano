@@ -42,9 +42,30 @@ func GetInfluxData(args map[string]interface{}) (interface{}, error) {
 
 	for i := 0; i < len(queryResult.(models.Row).Values); i++ {
 		s.Time = i
-		valueStr := fmt.Sprintf("%v", queryResult.(models.Row).Values[i][1])
-		valueFloat, _ := strconv.ParseFloat(valueStr, 64)
-		s.Value = int(valueFloat * 100)
+
+		switch metric {
+		case "cpu":
+			valueStr := fmt.Sprintf("%v", queryResult.(models.Row).Values[i][1])
+			valueFloat, _ := strconv.ParseFloat(valueStr, 64)
+			s.Value = int(valueFloat * 100)
+			break
+		case "mem":
+			valueStr := fmt.Sprintf("%v", queryResult.(models.Row).Values[i][1])
+			valueFloat, _ := strconv.ParseFloat(valueStr, 64)
+			s.Value = int(valueFloat * 1)
+			break
+		case "disk":
+			valueStr := fmt.Sprintf("%v", queryResult.(models.Row).Values[i][1])
+			valueFloat, _ := strconv.ParseFloat(valueStr, 64)
+			s.Value = int(valueFloat * 1)
+			break
+			//case "net":
+			//	valueStr := fmt.Sprintf("%v", queryResult.(models.Row).Values[i][1])
+			//	valueFloat, _ := strconv.ParseInt(valueStr, 64)
+			//	s.Value = int(valueFloat * 1)
+			//	break
+		}
+
 		series = append(series, s)
 	}
 	telegraf.Series = series
