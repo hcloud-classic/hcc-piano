@@ -7,7 +7,7 @@ var InfluxID = "root"
 var InfluxPassword = "qwe1212!Q"
 
 // InfluxAddress  - cgs
-var InfluxAddress = "192.168.110.240"
+var InfluxAddress = "192.168.110.10"
 
 // InfluxPort - cgs
 var InfluxPort = "8086"
