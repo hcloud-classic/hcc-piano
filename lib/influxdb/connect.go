@@ -113,6 +113,8 @@ func (s *InfluxInfo) GenerateQuery(metric string, subMetric string, period strin
 	// 시간 단위 설정
 	var timeCriteria time.Duration
 	switch period {
+	case "s":
+		timeCriteria = time.Second
 	case "m":
 		timeCriteria = time.Minute
 	case "h":
