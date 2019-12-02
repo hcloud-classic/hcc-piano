@@ -44,6 +44,7 @@ func GetInfluxData(args map[string]interface{}) (interface{}, error) {
 		s.Time = i
 
 		switch metric {
+		case "net":
 		case "cpu":
 			valueStr := fmt.Sprintf("%v", queryResult.(models.Row).Values[i][1])
 			valueFloat, _ := strconv.ParseFloat(valueStr, 64)
