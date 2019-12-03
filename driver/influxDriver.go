@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/influxdata/influxdb1-client/models"
 	"hcc/piano/lib/influxdb"
+	"hcc/piano/lib/logger"
 	"hcc/piano/model"
 	"strconv"
 )
@@ -34,9 +35,7 @@ func GetInfluxData(args map[string]interface{}) (interface{}, error) {
 
 	//value := fmt.Sprintf("%v", queryResult.(models.Row).Values)
 	//value1 := queryResult.(models.Row).Values[0][0]
-	//logger.Logger.Println("InfluxDB queryResult : " + value)
-	//logger.Logger.Println("value1 : " + fmt.Sprintf("%v", value1))
-	//logger.Logger.Println("value length : " + fmt.Sprintf("%v", len(queryResult.(models.Row).Values)))
+	logger.Logger.Println("queryResult : " + fmt.Sprintf("%v", queryResult))
 
 	telegraf.UUID = fmt.Sprintf("%v", queryResult.(models.Row).Tags["host"])
 
@@ -58,7 +57,7 @@ func GetInfluxData(args map[string]interface{}) (interface{}, error) {
 		case "disk":
 			valueStr := fmt.Sprintf("%v", queryResult.(models.Row).Values[i][1])
 			valueFloat, _ := strconv.ParseFloat(valueStr, 64)
-			s.Value = int(valueFloat * 1)
+			s.Value = int(valueFloat * 100)
 			break
 			//case "net":
 			//	valueStr := fmt.Sprintf("%v", queryResult.(models.Row).Values[i][1])
