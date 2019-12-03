@@ -159,15 +159,23 @@ func (s *InfluxInfo) GenerateQuery(metric string, subMetric string, period strin
 			break
 		}
 		break
+	case "diskio":
+		switch subMetric {
+		case "read_bytes":
+			query = influxBuilder.NewQuery().On(metric).
+				Field("read_bytes", aggregateType)
+			break
+		}
+		break
 	case "net":
 		switch subMetric {
 		case "bytes_recv":
 			query = influxBuilder.NewQuery().On(metric).
-				Field("used_percent", aggregateType)
+				Field("bytes_recv", aggregateType)
 			break
 		case "bytes_sent":
 			query = influxBuilder.NewQuery().On(metric).
-				Field("used_percent", aggregateType)
+				Field("bytes_sent", aggregateType)
 			break
 		}
 		break
