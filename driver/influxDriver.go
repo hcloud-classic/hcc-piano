@@ -44,7 +44,6 @@ func GetInfluxData(args map[string]interface{}) (interface{}, error) {
 		s.Time = i
 
 		switch metric {
-		case "net":
 		case "cpu":
 			valueStr := fmt.Sprintf("%v", queryResult.(models.Row).Values[i][1])
 			valueFloat, _ := strconv.ParseFloat(valueStr, 64)
@@ -60,11 +59,11 @@ func GetInfluxData(args map[string]interface{}) (interface{}, error) {
 			valueFloat, _ := strconv.ParseFloat(valueStr, 64)
 			s.Value = int(valueFloat * 1)
 			break
-			//case "net":
-			//	valueStr := fmt.Sprintf("%v", queryResult.(models.Row).Values[i][1])
-			//	valueFloat, _ := strconv.ParseInt(valueStr, 64)
-			//	s.Value = int(valueFloat * 1)
-			//	break
+		case "net":
+			valueStr := fmt.Sprintf("%v", queryResult.(models.Row).Values[i][1])
+			valueInt, _ := strconv.ParseInt(valueStr, 10, 64)
+			s.Value = int(valueInt * 1)
+			break
 		}
 
 		series = append(series, s)
