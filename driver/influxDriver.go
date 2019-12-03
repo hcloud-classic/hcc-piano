@@ -57,7 +57,7 @@ func GetInfluxData(args map[string]interface{}) (interface{}, error) {
 		case "disk":
 			valueStr := fmt.Sprintf("%v", queryResult.(models.Row).Values[i][1])
 			valueFloat, _ := strconv.ParseFloat(valueStr, 64)
-			s.Value = int(valueFloat * 100)
+			s.Value = int(valueFloat * 1)
 			break
 			//case "net":
 			//	valueStr := fmt.Sprintf("%v", queryResult.(models.Row).Values[i][1])
