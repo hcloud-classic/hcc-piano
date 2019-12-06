@@ -43,11 +43,13 @@ func GetInfluxData(args map[string]interface{}) (interface{}, error) {
 
 	if dataLength < 10 {
 		for i := 0; i < 10-dataLength; i++ {
+			s.Time = i
+			s.Value = 0
 			series = append(series, s)
 		}
 	}
 
-	for i := 0; i < dataLength; i++ {
+	for i := dataLength; i < dataLength; i++ {
 		s.Time = i
 
 		switch metric {
