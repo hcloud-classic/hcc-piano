@@ -39,7 +39,15 @@ func GetInfluxData(args map[string]interface{}) (interface{}, error) {
 
 	telegraf.UUID = fmt.Sprintf("%v", queryResult.(models.Row).Tags["host"])
 
-	for i := 0; i < len(queryResult.(models.Row).Values); i++ {
+	dataLength := len(queryResult.(models.Row).Values)
+
+	if dataLength < 10 {
+		for i := 0; i < 10-dataLength; i++ {
+			series = append(series, s)
+		}
+	}
+
+	for i := 0; i < dataLength; i++ {
 		s.Time = i
 
 		switch metric {
