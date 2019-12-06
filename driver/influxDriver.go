@@ -49,8 +49,8 @@ func GetInfluxData(args map[string]interface{}) (interface{}, error) {
 		}
 	}
 
-	for i := 10 - dataLength; i < 10; i++ {
-		s.Time = i
+	for i := 0; i < dataLength; i++ {
+		s.Time = 10 - dataLength + i
 
 		switch metric {
 		case "cpu":
