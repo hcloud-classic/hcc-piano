@@ -42,14 +42,14 @@ func GetInfluxData(args map[string]interface{}) (interface{}, error) {
 	dataLength := len(queryResult.(models.Row).Values)
 
 	if dataLength < 10 {
-		for i := 0; i < 10-dataLength; i++ {
-			s.Time = i
+		for j := 0; j < 10-dataLength; j++ {
+			s.Time = j
 			s.Value = 0
 			series = append(series, s)
 		}
 	}
 
-	for i := dataLength; i < dataLength; i++ {
+	for i := 10 - dataLength; i < 10; i++ {
 		s.Time = i
 
 		switch metric {
