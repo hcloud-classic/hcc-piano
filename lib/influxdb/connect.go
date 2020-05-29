@@ -169,6 +169,55 @@ func (s *InfluxInfo) GenerateQuery(metric string, subMetric string, period strin
 			break
 		}
 		break
+		query = influxBuilder.NewQuery().On(metric).
+			Field("usage_utilization", aggregateType).
+			Field("usage_system", aggregateType).
+			Field("usage_idle", aggregateType).
+			Field("usage_iowait", aggregateType).
+			Field("usage_irq", aggregateType).
+			Field("usage_softirq", aggregateType)
+	case "net":
+
+		query = influxBuilder.NewQuery().On(metric).
+			Field("bytes_recv", aggregateType).
+			Field("bytes_sent", aggregateType).
+			Field("packets_recv", aggregateType).
+			Field("packets_sent", aggregateType)
+
+		fieldArr := []string{"bytes_recv", "bytes_sent", "packets_recv", "packets_sent"}
+		query := s.getPerSecMetric(vmId, metric, period, fieldArr, duration)
+		return query, nil
+
+	case "mem":
+
+		query = influxBuilder.NewQuery().On(metric).
+			Field("used_percent", aggregateType).
+			Field("total", aggregateType).
+			Field("used", aggregateType).
+			Field("free", aggregateType).
+			Field("shared", aggregateType).
+			Field("buffered", aggregateType).
+			Field("cached", aggregateType)
+
+	case "disk":
+
+		query = influxBuilder.NewQuery().On(metric).
+			Field("used_percent", aggregateType).
+			Field("total", aggregateType).
+			Field("used", aggregateType).
+			Field("free", aggregateType)
+
+	case "diskio":
+
+		query = influxBuilder.NewQuery().On(metric).
+			Field("read_bytes", aggregateType).
+			Field("write_bytes", aggregateType).
+			Field("iops_read", aggregateType).
+			Field("iops_write", aggregateType)
+
+		fieldArr := []string{"read_bytes", "write_bytes", "reads", "writes"}
+		query := s.getPerSecMetric(vmId, metric, period, fieldArr, duration)
+		return query, nil
 
 	default:
 		return "", errors.New("not found metric")
