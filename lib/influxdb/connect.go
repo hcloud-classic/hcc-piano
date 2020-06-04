@@ -235,3 +235,33 @@ func (s *InfluxInfo) GenerateQuery(metric string, subMetric string, period strin
 
 	return queryString, nil
 }
+
+func (s *Storage) getPerSecMetric(vmId string, metric string, period string, fieldArr []string, duration string) string {
+	var query string
+
+	var timeCriteria string
+	switch period {
+	case "m":
+		timeCriteria = "1m"
+	case "h":
+		timeCriteria = "1h"
+	case "d":
+		timeCriteria = "60h"
+	}
+
+	fieldQueryForm := " non_negative_derivative(first(%s), 1s) as \"%s\""
+	for idx, field := range fieldArr {
+		if idx == 0 {
+			query = "SELECT"
+		}
+		query += fmt.Sprintf(fieldQueryForm, field, field)
+		if idx != len(fieldArr)-1 {
+			query += ","
+		}
+	}
+
+	whereQueryForm := " FROM \"%s\" WHERE time > now() - %s GROUP BY time(%s) fill(none)"
+	query += fmt.Sprintf(whereQueryForm, metric, duration, timeCriteria)
+
+	return query
+}
