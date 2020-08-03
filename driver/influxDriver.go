@@ -28,10 +28,10 @@ func GetInfluxData(args map[string]interface{}) (interface{}, error) {
 	var s model.Series
 
 	//queryResult, err := influxdb.Influx.ReadMetric("cpu", "s", "avg", "1m", "hcc-ubuntu")
-	queryResult, err := influxdb.Influx.ReadMetric(metric, subMetric, period, aggregateType, duration, uuid)
-	if err != nil {
-		return nil, nil
-	}
+	queryResult, _ := influxdb.Influx.ReadMetric(metric, subMetric, period, aggregateType, duration, uuid)
+	//if err != nil {
+	//	return nil, nil
+	//}
 
 	//value := fmt.Sprintf("%v", queryResult.(models.Row).Values)
 	//value1 := queryResult.(models.Row).Values[0][0]
@@ -41,8 +41,16 @@ func GetInfluxData(args map[string]interface{}) (interface{}, error) {
 
 	dataLength := len(queryResult.(models.Row).Values)
 
-	if dataLength < 10 {
-		for j := 0; j < 10-dataLength; j++ {
+	logger.Logger.Println("data : ", queryResult.(models.Row).Values)
+
+	if queryResult == nil {
+		for j := 0; j < 11; j++ {
+			s.Time = j
+			s.Value = 0
+			series = append(series, s)
+		}
+	} else if dataLength < 11 {
+		for j := 0; j < 11-dataLength; j++ {
 			s.Time = j
 			s.Value = 0
 			series = append(series, s)
@@ -50,7 +58,7 @@ func GetInfluxData(args map[string]interface{}) (interface{}, error) {
 	}
 
 	for i := 0; i < dataLength; i++ {
-		s.Time = 10 - dataLength + i
+		s.Time = 11 - dataLength + i
 
 		switch metric {
 		case "cpu":

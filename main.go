@@ -1,37 +1,54 @@
 package main
 
 import (
-	"hcc/piano/action/graphql"
+	"context"
+	"google.golang.org/grpc"
+	pb "hcc/piano/action/grpc"
 	"hcc/piano/lib/config"
 	"hcc/piano/lib/influxdb"
 	"hcc/piano/lib/logger"
 	"hcc/piano/lib/syscheck"
-	"net/http"
+	"log"
+	"net"
 )
 
+type server struct {
+	pb.UnimplementedGreeterServer
+}
+
+func (s *server) SayHello(ctx context.Context, in *pb.HelloRequest) (*pb.HelloReply, error) {
+	log.Printf("Received: %v", in.GetName())
+	return &pb.HelloReply{Message: "Hello " + in.GetName()}, nil
+}
+
 func main() {
-	if !syscheck.CheckRoot() {
-		return
-	}
+
 	if !logger.Prepare() {
-		return
+		logger.Logger.Fatalf("Failed to prepare logger.")
 	}
 	defer logger.FpLog.Close()
 
-	//hostInfo := influxdb.HostInfo{URL:"http://"+config.InfluxAddress+":"+config.InfluxPort, Username:config.InfluxID, Password:config.InfluxPassword}
-	//influxInfo := influxdb.InfluxInfo{HostInfo: hostInfo, Database: config.InfluxDatabase}
-	//err := influxInfo.InitInfluxDB()
-
-	err := influxdb.Prepare()
+	err := syscheck.CheckRoot()
 	if err != nil {
-		return
+		logger.Logger.Fatalf("Failed to run piano : %v", err)
+	}
+
+	err = influxdb.Prepare()
+	if err != nil {
+		logger.Logger.Fatalf("Failed to prepare InfluxDB : %v", err)
 	}
 	logger.Logger.Println("InfluxDB is listening on port " + config.InfluxPort)
 
-	http.Handle("/graphql", graphql.GraphqlHandler)
-	logger.Logger.Println("Opening server on port " + config.HTTPPort)
-	err = http.ListenAndServe(":"+config.HTTPPort, nil)
+	lis, err := net.Listen("tcp", config.GrpcPort)
 	if err != nil {
-		logger.Logger.Println("Failed to prepare http server!")
+		log.Fatalf("Failed to listen: %v", err)
 	}
+	s := grpc.NewServer()
+	logger.Logger.Println("GRPC server is listening on port " + config.GrpcPort)
+
+	pb.RegisterGreeterServer(s, &server{})
+	if err := s.Serve(lis); err != nil {
+		logger.Logger.Fatalf("failed to serve: %v", err)
+	}
+
 }

@@ -40,7 +40,6 @@ func Prepare() error {
 
 // InitInfluxDB - cgs
 func (s *InfluxInfo) InitInfluxDB() error {
-	logger.Logger.Println("Init InfluxDB ")
 	client, err := influxdbClient.NewHTTPClient(influxdbClient.HTTPConfig{
 		Addr:     s.HostInfo.URL,
 		Username: s.HostInfo.Username,
@@ -48,12 +47,10 @@ func (s *InfluxInfo) InitInfluxDB() error {
 	})
 	if err != nil {
 		logger.Logger.Println("NewHTTPClient error")
-		//logrus.Error(err)
 		return err
 	}
 	if _, _, err := client.Ping(time.Millisecond * 100); err != nil {
 		logger.Logger.Println("Ping error")
-		//logrus.Error(err)
 		return err
 	}
 
@@ -123,7 +120,7 @@ func (s *InfluxInfo) GenerateQuery(metric string, subMetric string, period strin
 		timeCriteria = time.Hour * 24
 	}
 
-	// InfluXDB 쿼리 생성
+	// InfluxDB 쿼리 생성
 	var query influxBuilder.Query
 
 	switch metric {
