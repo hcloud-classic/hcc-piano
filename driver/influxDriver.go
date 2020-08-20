@@ -1,8 +1,10 @@
 package driver
 
 import (
+	"errors"
 	"fmt"
 	"github.com/influxdata/influxdb1-client/models"
+	"hcc/piano/action/grpc/rpcpiano"
 	"hcc/piano/lib/influxdb"
 	"hcc/piano/lib/logger"
 	"hcc/piano/model"
@@ -10,37 +12,46 @@ import (
 )
 
 // GetInfluxData - cgs
-func GetInfluxData(args map[string]interface{}) (interface{}, error) {
+//func GetInfluxData(args map[string]interface{}) (interface{}, error) {
+func GetInfluxData(in *rpcpiano.ReqMetricInfo) (*rpcpiano.ResMonitoringData, error) {
 
-	metric, metricOk := args["metric"].(string)
-	subMetric, subMetricOk := args["subMetric"].(string)
-	period, periodOk := args["period"].(string)
-	aggregateType, aggregateTypeOk := args["aggregateType"].(string)
-	duration, durationOk := args["duration"].(string)
-	uuid, uuidOk := args["uuid"].(string)
-
-	if !metricOk || !subMetricOk || !periodOk || !aggregateTypeOk || !durationOk || !uuidOk {
-		return nil, nil
+	if in.GetMetricInfo() == nil {
+		return nil, errors.New("metricInfo is nil")
 	}
+
+	var monitoringData *rpcpiano.ResMonitoringData
+	metricInfo := in.GetMetricInfo()
+
+	metric := metricInfo.Metric
+	subMetric := metricInfo.SubMetric
+	period := metricInfo.Period
+	aggregateType := metricInfo.AggregateType
+	duration := metricInfo.Duration
+	uuid := metricInfo.Uuid
+
+	//metric, metricOk := args["metric"].(string)
+	//subMetric, subMetricOk := args["subMetric"].(string)
+	//period, periodOk := args["period"].(string)
+	//aggregateType, aggregateTypeOk := args["aggregateType"].(string)
+	//duration, durationOk := args["duration"].(string)
+	//uuid, uuidOk := args["uuid"].(string)
+
+	//if !metricOk || !subMetricOk || !periodOk || !aggregateTypeOk || !durationOk || !uuidOk {
+	//	return nil, nil
+	//}
 
 	var telegraf model.Telegraf
 	var series []model.Series
 	var s model.Series
+	var err error
 
-	//queryResult, err := influxdb.Influx.ReadMetric("cpu", "s", "avg", "1m", "hcc-ubuntu")
-	queryResult, _ := influxdb.Influx.ReadMetric(metric, subMetric, period, aggregateType, duration, uuid)
-	//if err != nil {
-	//	return nil, nil
-	//}
-
-	//value := fmt.Sprintf("%v", queryResult.(models.Row).Values)
-	//value1 := queryResult.(models.Row).Values[0][0]
+	queryResult, err := influxdb.Influx.ReadMetric(metric, subMetric, period, aggregateType, duration, uuid)
+	if err != nil {
+		return nil, nil
+	}
 	logger.Logger.Println("queryResult : " + fmt.Sprintf("%v", queryResult))
-
 	telegraf.UUID = fmt.Sprintf("%v", queryResult.(models.Row).Tags["host"])
-
 	dataLength := len(queryResult.(models.Row).Values)
-
 	logger.Logger.Println("data : ", queryResult.(models.Row).Values)
 
 	if queryResult == nil {
@@ -86,9 +97,10 @@ func GetInfluxData(args map[string]interface{}) (interface{}, error) {
 
 		series = append(series, s)
 	}
+
 	telegraf.Series = series
 	telegraf.Metric = metric
 	telegraf.SubMetric = subMetric
 
-	return telegraf, nil
+	return monitoringData, nil
 }
