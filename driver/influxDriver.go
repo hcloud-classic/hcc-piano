@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/influxdata/influxdb1-client/models"
-	"hcc/piano/action/grpc/rpcpiano"
+	"hcc/piano/action/grpc/pb/rpcpiano"
 	"hcc/piano/lib/influxdb"
 	"hcc/piano/lib/logger"
 	"hcc/piano/model"

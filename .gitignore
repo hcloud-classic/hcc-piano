@@ -5,4 +5,5 @@ goreport_grade
 .vscode/
 /vendor
 /_venodr-*
+/action/grpc/pb/*
 nohup.out

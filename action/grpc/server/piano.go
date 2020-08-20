@@ -1,10 +1,10 @@
-package grpcsrv
+package server
 
 import (
 	"context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
-	"hcc/piano/action/grpc/rpcpiano"
+	"hcc/piano/action/grpc/pb/rpcpiano"
 	"hcc/piano/driver"
 	"hcc/piano/lib/config"
 	"hcc/piano/lib/logger"
