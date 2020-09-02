@@ -3,7 +3,7 @@ package graphql
 import (
 	"github.com/graphql-go/graphql"
 	graphqlType "hcc/piano/action/graphql/type"
-	"hcc/piano/driver"
+	"hcc/piano/driver/influxdb"
 	"hcc/piano/lib/logger"
 )
 
@@ -36,7 +36,7 @@ var queryTypes = graphql.NewObject(
 				},
 				Resolve: func(params graphql.ResolveParams) (interface{}, error) {
 					logger.Logger.Println("Resolving: cpu")
-					return driver.GetInfluxData(params.Args)
+					return influxdb.GetInfluxData(params.Args)
 				},
 			},
 		},

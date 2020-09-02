@@ -1,4 +1,7 @@
 package config
 
-// GrpcPort - cgs
-var GrpcPort = ":50051"
+type grpc struct {
+	Port string `goconf:"grpc:port"`
+}
+
+var Grpc grpc

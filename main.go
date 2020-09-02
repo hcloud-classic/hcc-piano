@@ -1,30 +1,41 @@
 package main
 
 import (
-	"hcc/piano/action/grpc/server"
+	gServer "hcc/piano/action/grpc/server"
+	"hcc/piano/driver/influxdb"
 	"hcc/piano/lib/config"
-	"hcc/piano/lib/influxdb"
 	"hcc/piano/lib/logger"
 	"hcc/piano/lib/syscheck"
+	"log"
 )
 
-func main() {
-
-	if !logger.Prepare() {
-		logger.Logger.Fatalf("Failed to prepare logger.")
-	}
-	defer logger.FpLog.Close()
-
+func init() {
 	err := syscheck.CheckRoot()
 	if err != nil {
-		logger.Logger.Fatalf("Failed to run piano : %v", err)
+		log.Fatalf("syscheck.CheckRoot(): %v", err.Error())
 	}
 
-	err = influxdb.Prepare()
+	err = logger.Init()
 	if err != nil {
-		logger.Logger.Fatalf("Failed to prepare InfluxDB : %v", err)
+		log.Fatalf("logger.Init(): %v", err.Error())
 	}
-	logger.Logger.Println("InfluxDB is listening on port " + config.InfluxPort)
 
-	server.InitGRPCServer()
+	config.Init()
+
+	err = influxdb.Init()
+	if err != nil {
+		logger.Logger.Fatalf("influxdb.Init(): %v", err.Error())
+	}
+	logger.Logger.Println("InfluxDB is listening on port " + config.Influxdb.Port)
+
+}
+
+func end() {
+	logger.End()
+	influxdb.End()
+	gServer.End()
+}
+
+func main() {
+	gServer.Init()
 }

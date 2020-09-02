@@ -31,8 +31,8 @@ func CreateDirIfNotExist(dir string) error {
 	return nil
 }
 
-// Prepare : Prepare logger
-func Prepare() bool {
+// Init : Prepare logger
+func Init() error {
 	var err error
 	returnValue := false
 
@@ -46,7 +46,6 @@ func Prepare() bool {
 		}
 
 		now := time.Now()
-
 		year := fmt.Sprintf("%d", now.Year())
 		month := fmt.Sprintf("%02d", now.Month())
 		day := fmt.Sprintf("%02d", now.Day())
@@ -64,5 +63,14 @@ func Prepare() bool {
 		returnValue = true
 	})
 
-	return returnValue
+	if returnValue {
+		return nil
+	} else {
+		return err
+	}
+}
+
+// End : Close logger
+func End() {
+	_ = FpLog.Close()
 }

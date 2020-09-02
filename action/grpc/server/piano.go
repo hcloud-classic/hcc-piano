@@ -5,12 +5,11 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 	"hcc/piano/action/grpc/pb/rpcpiano"
-	"hcc/piano/driver"
+	"hcc/piano/driver/influxdb"
 	"hcc/piano/lib/config"
 	"hcc/piano/lib/logger"
 	"log"
 	"net"
-	"strconv"
 )
 
 type server struct {
@@ -20,20 +19,20 @@ type server struct {
 var srv *grpc.Server
 
 func (s *server) Telegraph(ctx context.Context, in *rpcpiano.ReqMetricInfo) (*rpcpiano.ResMonitoringData, error) {
-	series, err := driver.GetInfluxData(in)
+	series, err := influxdb.GetInfluxData(in)
 	if err != nil {
 		return nil, err
 	}
 	return series, nil
 }
 
-func InitGRPCServer() error {
-	lis, err := net.Listen("tcp", ":"+strconv.FormatInt(int64(config.HttpPort), 10))
+func Init() error {
+	lis, err := net.Listen("tcp", ":"+config.Grpc.Port)
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
 	defer lis.Close()
-	logger.Logger.Println("Opening server on port " + strconv.FormatInt(int64(config.HttpPort), 10) + "...")
+	logger.Logger.Println("Opening server on port " + config.Grpc.Port + "...")
 
 	srv = grpc.NewServer()
 	rpcpiano.RegisterPianoServer(srv, &server{})
@@ -47,6 +46,6 @@ func InitGRPCServer() error {
 	return err
 }
 
-func CleanGRPCServer() {
+func End() {
 	srv.Stop()
 }
