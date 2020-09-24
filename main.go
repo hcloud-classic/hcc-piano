@@ -26,7 +26,7 @@ func init() {
 	if err != nil {
 		logger.Logger.Fatalf("influxdb.Init(): %v", err.Error())
 	}
-	logger.Logger.Println("InfluxDB is listening on port " + config.Influxdb.Port)
+	logger.Logger.Println("InfluxDB is connected to " + config.Influxdb.Port)
 
 }
 
