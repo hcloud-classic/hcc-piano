@@ -10,14 +10,12 @@ var config = pianoConfig{}
 var err error
 
 func parseGrpc() {
-
 	config.GrpcConfig = conf.Get("grpc")
 	if config.GrpcConfig == nil {
 		logger.Logger.Panicln("no grpc section")
 	}
 
-	Grpc = grpc{}
-	Grpc.Port, err = config.GrpcConfig.String("port")
+	Grpc.Port, err = config.GrpcConfig.Int("port")
 	if err != nil {
 		logger.Logger.Panicln(err)
 	}
@@ -42,12 +40,12 @@ func parseInfluxdb() {
 		logger.Logger.Panicln(err)
 	}
 
-	Influxdb.Host, err = config.InfluxdbConfig.String("host")
+	Influxdb.Address, err = config.InfluxdbConfig.String("address")
 	if err != nil {
 		logger.Logger.Panicln(err)
 	}
 
-	Influxdb.Port, err = config.InfluxdbConfig.String("port")
+	Influxdb.Port, err = config.InfluxdbConfig.Int("port")
 	if err != nil {
 		logger.Logger.Panicln(err)
 	}

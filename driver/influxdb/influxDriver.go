@@ -1,27 +1,28 @@
 package influxdb
 
 import (
-	"errors"
 	"fmt"
 	"github.com/influxdata/influxdb1-client/models"
+	"hcc/piano/action/grpc/errconv"
 	"hcc/piano/action/grpc/pb/rpcpiano"
+	"hcc/piano/lib/errors"
 	"hcc/piano/lib/logger"
-	"hcc/piano/model"
 	"strconv"
 )
 
 // GetInfluxData - cgs
 func GetInfluxData(in *rpcpiano.ReqMetricInfo) (*rpcpiano.ResMonitoringData, error) {
+	var resMonitoringData rpcpiano.ResMonitoringData
 
 	if in.GetMetricInfo() == nil {
-		return nil, errors.New("metricInfo is nil")
+		errStack := errors.ReturnHccError(errors.PianoGrpcArgumentError, "metricInfo is nil")
+		resMonitoringData.HccErrorStack = errconv.HccStackToGrpc(&errStack)
+		return &resMonitoringData, nil
 	}
 
-	var resMonitoringData rpcpiano.ResMonitoringData
 	var monitoringData rpcpiano.MonitoringData
-	var seriesEntry rpcpiano.Series
 	var seriesList []rpcpiano.Series
-	var seriesResponse []*rpcpiano.Series
+	var resSeriesList []*rpcpiano.Series
 
 	metricInfo := in.GetMetricInfo()
 	metric := metricInfo.Metric
@@ -29,96 +30,72 @@ func GetInfluxData(in *rpcpiano.ReqMetricInfo) (*rpcpiano.ResMonitoringData, err
 	period := metricInfo.Period
 	aggregateType := metricInfo.AggregateType
 	duration := metricInfo.Duration
+	if metric == "net" {
+		durationInt, _ := strconv.Atoi(duration[:len(duration)-1])
+		duration = strconv.Itoa(durationInt + 1) + duration[len(duration)-1:]
+	}
 	uuid := metricInfo.Uuid
-
-	//if !metricOk || !subMetricOk || !periodOk || !aggregateTypeOk || !durationOk || !uuidOk {
-	//	return nil, nil
-	//}
-
-	var telegraf model.Telegraf
-	var series []model.Series
-	var s model.Series
-
-	var err error
 
 	queryResult, err := Influx.ReadMetric(metric, subMetric, period, aggregateType, duration, uuid)
 	if err != nil {
-		return nil, nil
+		errStack := errors.ReturnHccError(errors.PianoInfluxDBReadMetricError, err.Error())
+		resMonitoringData.HccErrorStack = errconv.HccStackToGrpc(&errStack)
+		return &resMonitoringData, nil
 	}
-	logger.Logger.Println("queryResult : " + fmt.Sprintf("%v", queryResult))
-	telegraf.UUID = fmt.Sprintf("%v", queryResult.(models.Row).Tags["host"])
+	logger.Logger.Println("queryResult (" +metric + ", " + subMetric + ")" +  ": " + fmt.Sprintf("%v", queryResult))
 
 	dataLength := len(queryResult.(models.Row).Values)
+	if metric == "net" {
+		dataLength--
+	}
 	logger.Logger.Println("data : ", queryResult.(models.Row).Values)
 
-	if queryResult == nil {
-		for j := 0; j < 11; j++ {
-			s.Time = j
-			s.Value = 0
-			series = append(series, s)
-		}
-	} else if dataLength < 11 {
-		for j := 0; j < 11-dataLength; j++ {
-			s.Time = j
-			s.Value = 0
-			series = append(series, s)
-		}
-	}
-
 	for i := 0; i < dataLength; i++ {
-		s.Time = 11 - dataLength + i
+		var time int64
+		var value int64
 
-		seriesEntry.Time = int64(11 - dataLength + i)
+		time = int64(i)
 
 		switch metric {
 		case "cpu":
 			valueStr := fmt.Sprintf("%v", queryResult.(models.Row).Values[i][1])
 			valueFloat, _ := strconv.ParseFloat(valueStr, 64)
-			s.Value = int(valueFloat * 100)
-			seriesEntry.Value = int64(valueFloat * 100)
-			break
-		case "mem":
+			value = int64(valueFloat * 100)
+		case "mem", "disk":
 			valueStr := fmt.Sprintf("%v", queryResult.(models.Row).Values[i][1])
 			valueFloat, _ := strconv.ParseFloat(valueStr, 64)
-			s.Value = int(valueFloat * 1)
-			seriesEntry.Value = int64(valueFloat * 1)
-			break
+			value = int64(valueFloat)
+		case "diskio":
+			valueStr := fmt.Sprintf("%v", queryResult.(models.Row).Values[i][1])
+			valueFloat, _ := strconv.ParseFloat(valueStr, 64)
+			value = int64(valueFloat / 1024 / 1024) // MB
 		case "net":
-		case "disk":
-			valueStr := fmt.Sprintf("%v", queryResult.(models.Row).Values[i][1])
-			valueFloat, _ := strconv.ParseFloat(valueStr, 64)
-			s.Value = int(valueFloat * 1)
-			seriesEntry.Value = int64(valueFloat * 1)
-			break
-			//case "net":
-			//	valueStr := fmt.Sprintf("%v", queryResult.(models.Row).Values[i][1])
-			//	valueInt, _ := strconv.ParseInt(valueStr, 10, 64)
-			//	s.Value = int(valueInt * 1)
-			//	break
+			valueBeforeStr := fmt.Sprintf("%v", queryResult.(models.Row).Values[i][1])
+			valueBeforeFloat, _ := strconv.ParseFloat(valueBeforeStr, 64)
+			valueBefore := int64(valueBeforeFloat / 1024 / 1024) // MB
 
-			//case "process":
-			//	valueStr := fmt.Sprintf("%v", queryResult.(models.Row).Values[i][1])
-			//	valueFloat, _ := strconv.ParseFloat(valueStr, 64)
-			//	s.Value = int(valueFloat * 1)
-			//	seriesEntry.Value = int64(valueFloat * 1)
-			//	break
+			valueAfterStr := fmt.Sprintf("%v", queryResult.(models.Row).Values[i + 1][1])
+			valueAfterFloat, _ := strconv.ParseFloat(valueAfterStr, 64)
+			valueAfter := int64(valueAfterFloat / 1024 / 1024) // MB
 
+			value = valueAfter - valueBefore
+		default:
+			continue
 		}
 
-		series = append(series, s)
-		seriesList = append(seriesList, seriesEntry)
+		seriesList = append(seriesList, rpcpiano.Series{
+			Time:  time,
+			Value: value,
+		})
 	}
 
-	telegraf.Series = series
-	telegraf.Metric = metric
-	telegraf.SubMetric = subMetric
-
-	for j := 0; j < dataLength; j++ {
-		seriesResponse = append(seriesResponse, &seriesList[j])
+	for i := range seriesList {
+		resSeriesList = append(resSeriesList, &seriesList[i])
 	}
+
 	monitoringData.Metric = metric
 	monitoringData.SubMetric = subMetric
-	monitoringData.Series = seriesResponse
+	monitoringData.Series = resSeriesList
 	resMonitoringData.MonitoringData = &monitoringData
 
 	return &resMonitoringData, nil

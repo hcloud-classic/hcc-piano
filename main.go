@@ -1,41 +1,52 @@
 package main
 
 import (
-	gServer "hcc/piano/action/grpc/server"
+	"fmt"
+	"hcc/piano/action/grpc/server"
 	"hcc/piano/driver/influxdb"
 	"hcc/piano/lib/config"
+	"hcc/piano/lib/errors"
 	"hcc/piano/lib/logger"
-	"hcc/piano/lib/syscheck"
-	"log"
+	"os"
+	"os/signal"
+	"strconv"
+	"syscall"
 )
 
 func init() {
-	err := syscheck.CheckRoot()
+	err := logger.Init()
 	if err != nil {
-		log.Fatalf("syscheck.CheckRoot(): %v", err.Error())
+		errors.SetErrLogger(logger.Logger)
+		errors.NewHccError(errors.PianoInternalInitFail, "logger.Init(): "+err.Error()).Fatal()
 	}
-
-	err = logger.Init()
-	if err != nil {
-		log.Fatalf("logger.Init(): %v", err.Error())
-	}
+	errors.SetErrLogger(logger.Logger)
 
 	config.Init()
 
 	err = influxdb.Init()
 	if err != nil {
-		logger.Logger.Fatalf("influxdb.Init(): %v", err.Error())
+		errors.NewHccError(errors.PianoInternalInitFail, "influxdb.Init(): "+err.Error()).Fatal()
 	}
-	logger.Logger.Println("InfluxDB is connected to " + config.Influxdb.Port)
+
+	logger.Logger.Println("InfluxDB is connected to " + config.Influxdb.Address + ":" +
+		strconv.FormatInt(config.Influxdb.Port, 10))
 
 }
 
 func end() {
 	logger.End()
-	influxdb.End()
-	gServer.End()
 }
 
 func main() {
-	gServer.Init()
+	// Catch the exit signal
+	sigChan := make(chan os.Signal)
+	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-sigChan
+		end()
+		fmt.Println("Exiting piano module...")
+		os.Exit(0)
+	}()
+
+	server.Init()
 }

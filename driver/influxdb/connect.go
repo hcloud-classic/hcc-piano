@@ -7,6 +7,7 @@ import (
 	influxdbClient "github.com/influxdata/influxdb1-client/v2"
 	"hcc/piano/lib/config"
 	"hcc/piano/lib/logger"
+	"strconv"
 	"time"
 )
 
@@ -29,7 +30,11 @@ var Influx InfluxInfo
 
 // Prepare - cgs
 func Init() error {
-	hostInfo := HostInfo{URL: "http://" + config.Influxdb.Host + ":" + config.Influxdb.Port, Username: config.Influxdb.Id, Password: config.Influxdb.Password}
+	hostInfo := HostInfo{
+		URL:      "http://" + config.Influxdb.Address + ":" + strconv.FormatInt(config.Influxdb.Port, 10),
+		Username: config.Influxdb.Id,
+		Password: config.Influxdb.Password,
+	}
 	Influx = InfluxInfo{HostInfo: hostInfo, Database: config.Influxdb.Db}
 	err := Influx.InitInfluxDB()
 	if err != nil {
@@ -84,7 +89,7 @@ func (s *InfluxInfo) ReadMetric(metric string, subMetric string, period string, 
 		}
 	}
 
-	return nil, nil
+	return nil, errors.New("failed to get metric")
 }
 
 // GenerateQuery - cgs
@@ -191,8 +196,4 @@ func (s *InfluxInfo) GenerateQuery(metric string, subMetric string, period strin
 	queryString := query.Build()
 
 	return queryString, nil
-}
-
-func End() {
-
 }

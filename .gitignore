@@ -1,9 +1,10 @@
 piano
+tmp_melody
+*.proto
 coverage.out
 goreport_grade
 .idea/
 .vscode/
 /vendor
 /_venodr-*
-/action/grpc/pb/*
 nohup.out
