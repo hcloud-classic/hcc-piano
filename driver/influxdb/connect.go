@@ -11,28 +11,28 @@ import (
 	"time"
 )
 
-// HostInfo - cgs
+// HostInfo : Contain infos of InfluxDB's host
 type HostInfo struct {
 	URL      string
 	Username string
 	Password string
 }
 
-// InfluxInfo - cgs
+// InfluxInfo : Contain infos of InfluxDB
 type InfluxInfo struct {
 	HostInfo HostInfo
 	Database string
 	Clients  []influxdbClient.Client
 }
 
-// Influx - cgs
+// Influx : Exported variable to get infos of InfluxDB
 var Influx InfluxInfo
 
-// Prepare - cgs
+// Init : Initialize InfluxDB connection
 func Init() error {
 	hostInfo := HostInfo{
 		URL:      "http://" + config.Influxdb.Address + ":" + strconv.FormatInt(config.Influxdb.Port, 10),
-		Username: config.Influxdb.Id,
+		Username: config.Influxdb.ID,
 		Password: config.Influxdb.Password,
 	}
 	Influx = InfluxInfo{HostInfo: hostInfo, Database: config.Influxdb.Db}
@@ -43,7 +43,7 @@ func Init() error {
 	return nil
 }
 
-// InitInfluxDB - cgs
+// InitInfluxDB : Check if InfluxDB is available
 func (s *InfluxInfo) InitInfluxDB() error {
 	client, err := influxdbClient.NewHTTPClient(influxdbClient.HTTPConfig{
 		Addr:     s.HostInfo.URL,
@@ -64,7 +64,7 @@ func (s *InfluxInfo) InitInfluxDB() error {
 	return nil
 }
 
-// ReadMetric - cgs
+// ReadMetric : Read metrics from InfluxDB
 func (s *InfluxInfo) ReadMetric(metric string, subMetric string, period string, aggregateType string, duration string, uuid string) (interface{}, error) {
 	logger.Logger.Println("ReadMetric")
 	influx := s.Clients[0]
@@ -92,7 +92,7 @@ func (s *InfluxInfo) ReadMetric(metric string, subMetric string, period string, 
 	return nil, errors.New("failed to get metric")
 }
 
-// GenerateQuery - cgs
+// GenerateQuery : Generate the query for InfluxDB
 func (s *InfluxInfo) GenerateQuery(metric string, subMetric string, period string, aggregateType string, duration string, uuid string) (string, error) {
 
 	// 통계 기준 설정

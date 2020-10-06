@@ -30,7 +30,7 @@ func parseInfluxdb() {
 
 	Influxdb = influxdb{}
 
-	Influxdb.Id, err = config.InfluxdbConfig.String("id")
+	Influxdb.ID, err = config.InfluxdbConfig.String("id")
 	if err != nil {
 		logger.Logger.Panicln(err)
 	}
@@ -57,7 +57,7 @@ func parseInfluxdb() {
 
 }
 
-// Init
+// Init : Parse config file and initialize config structure
 func Init() {
 	if err = conf.Parse(configLocation); err != nil {
 		logger.Logger.Panicln(err)
