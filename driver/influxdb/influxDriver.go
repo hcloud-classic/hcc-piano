@@ -32,7 +32,7 @@ func GetInfluxData(in *rpcpiano.ReqMetricInfo) (*rpcpiano.ResMonitoringData, err
 	duration := metricInfo.Duration
 	if metric == "net" {
 		durationInt, _ := strconv.Atoi(duration[:len(duration)-1])
-		duration = strconv.Itoa(durationInt + 1) + duration[len(duration)-1:]
+		duration = strconv.Itoa(durationInt+1) + duration[len(duration)-1:]
 	}
 	uuid := metricInfo.Uuid
 
@@ -42,7 +42,7 @@ func GetInfluxData(in *rpcpiano.ReqMetricInfo) (*rpcpiano.ResMonitoringData, err
 		resMonitoringData.HccErrorStack = errconv.HccStackToGrpc(&errStack)
 		return &resMonitoringData, nil
 	}
-	logger.Logger.Println("queryResult (" +metric + ", " + subMetric + ")" +  ": " + fmt.Sprintf("%v", queryResult))
+	logger.Logger.Println("queryResult (" + metric + ", " + subMetric + ")" + ": " + fmt.Sprintf("%v", queryResult))
 
 	dataLength := len(queryResult.(models.Row).Values)
 	if metric == "net" {
@@ -74,7 +74,7 @@ func GetInfluxData(in *rpcpiano.ReqMetricInfo) (*rpcpiano.ResMonitoringData, err
 			valueBeforeFloat, _ := strconv.ParseFloat(valueBeforeStr, 64)
 			valueBefore := int64(valueBeforeFloat / 1024 / 1024) // MB
 
-			valueAfterStr := fmt.Sprintf("%v", queryResult.(models.Row).Values[i + 1][1])
+			valueAfterStr := fmt.Sprintf("%v", queryResult.(models.Row).Values[i+1][1])
 			valueAfterFloat, _ := strconv.ParseFloat(valueAfterStr, 64)
 			valueAfter := int64(valueAfterFloat / 1024 / 1024) // MB
 
