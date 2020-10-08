@@ -9,86 +9,60 @@ var conf = goconf.New()
 var config = pianoConfig{}
 var err error
 
-func parseMysql() {
-	config.MysqlConfig = conf.Get("mysql")
-	if config.MysqlConfig == nil {
-		logger.Logger.Panicln("no mysql section")
+func parseGrpc() {
+	config.GrpcConfig = conf.Get("grpc")
+	if config.GrpcConfig == nil {
+		logger.Logger.Panicln("no grpc section")
 	}
 
-	Mysql = mysql{}
-	Mysql.ID, err = config.MysqlConfig.String("id")
-	if err != nil {
-		logger.Logger.Panicln(err)
-	}
-
-	Mysql.Password, err = config.MysqlConfig.String("password")
-	if err != nil {
-		logger.Logger.Panicln(err)
-	}
-
-	Mysql.Address, err = config.MysqlConfig.String("address")
-	if err != nil {
-		logger.Logger.Panicln(err)
-	}
-
-	Mysql.Port, err = config.MysqlConfig.Int("port")
-	if err != nil {
-		logger.Logger.Panicln(err)
-	}
-
-	Mysql.Database, err = config.MysqlConfig.String("database")
+	Grpc.Port, err = config.GrpcConfig.Int("port")
 	if err != nil {
 		logger.Logger.Panicln(err)
 	}
 }
 
-func parseHTTP() {
-	config.HTTPConfig = conf.Get("http")
-	if config.HTTPConfig == nil {
-		logger.Logger.Panicln("no http section")
+func parseInfluxdb() {
+
+	config.InfluxdbConfig = conf.Get("influxdb")
+	if config.InfluxdbConfig == nil {
+		logger.Logger.Panicln("no influxdb section")
 	}
 
-	HTTP = http{}
-	HTTP.Port, err = config.HTTPConfig.Int("port")
+	Influxdb = influxdb{}
+
+	Influxdb.ID, err = config.InfluxdbConfig.String("id")
 	if err != nil {
 		logger.Logger.Panicln(err)
 	}
+
+	Influxdb.Password, err = config.InfluxdbConfig.String("password")
+	if err != nil {
+		logger.Logger.Panicln(err)
+	}
+
+	Influxdb.Address, err = config.InfluxdbConfig.String("address")
+	if err != nil {
+		logger.Logger.Panicln(err)
+	}
+
+	Influxdb.Port, err = config.InfluxdbConfig.Int("port")
+	if err != nil {
+		logger.Logger.Panicln(err)
+	}
+
+	Influxdb.Db, err = config.InfluxdbConfig.String("db")
+	if err != nil {
+		logger.Logger.Panicln(err)
+	}
+
 }
 
-func parseRabbitMQ() {
-	config.RabbitMQConfig = conf.Get("rabbitmq")
-	if config.RabbitMQConfig == nil {
-		logger.Logger.Panicln("no rabbitmq section")
-	}
-
-	RabbitMQ = rabbitmq{}
-	RabbitMQ.ID, err = config.RabbitMQConfig.String("rabbitmq_id")
-	if err != nil {
-		logger.Logger.Panicln(err)
-	}
-
-	RabbitMQ.Password, err = config.RabbitMQConfig.String("rabbitmq_password")
-	if err != nil {
-		logger.Logger.Panicln(err)
-	}
-
-	RabbitMQ.Address, err = config.RabbitMQConfig.String("rabbitmq_address")
-	if err != nil {
-		logger.Logger.Panicln(err)
-	}
-
-	RabbitMQ.Port, err = config.RabbitMQConfig.Int("rabbitmq_port")
-	if err != nil {
-		logger.Logger.Panicln(err)
-	}
-}
-
-// Parser : Parse config file
-func Parser() {
+// Init : Parse config file and initialize config structure
+func Init() {
 	if err = conf.Parse(configLocation); err != nil {
 		logger.Logger.Panicln(err)
 	}
 
-	parseRabbitMQ()
-	parseHTTP()
+	parseGrpc()
+	parseInfluxdb()
 }

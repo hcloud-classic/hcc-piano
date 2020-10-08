@@ -1,7 +1,7 @@
 package logger
 
 import (
-	"hcc/piano/lib/checkroot"
+	"hcc/piano/lib/errors"
 	"testing"
 )
 
@@ -13,13 +13,12 @@ func Test_CreateDirIfNotExist(t *testing.T) {
 }
 
 func Test_Logger_Prepare(t *testing.T) {
-	if !checkroot.CheckRoot() {
-		t.Fatal("Failed to get root permission!")
+	err := Init()
+	if err != nil {
+		errors.SetErrLogger(Logger)
+		errors.NewHccError(errors.PianoInternalInitFail, "logger.Init(): "+err.Error()).Fatal()
 	}
-
-	if !Prepare() {
-		t.Fatal("Failed to prepare logger!")
-	}
+	errors.SetErrLogger(Logger)
 	defer func() {
 		_ = FpLog.Close()
 	}()
