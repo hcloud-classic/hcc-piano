@@ -28,8 +28,8 @@ func init() {
 		errors.NewHccError(errors.PianoInternalInitFail, "influxdb.Init(): "+err.Error()).Fatal()
 	}
 
-	logger.Logger.Println("InfluxDB is connected to " + config.Influxdb.Address + ":" +
-		strconv.FormatInt(config.Influxdb.Port, 10))
+	logger.Logger.Println("Connected to InfluxDB (" + config.Influxdb.Address + ":" +
+		strconv.FormatInt(config.Influxdb.Port, 10) + ")")
 
 }
 
