@@ -11,9 +11,7 @@ type pianoServer struct {
 }
 
 func (s *pianoServer) Telegraph(ctx context.Context, in *rpcpiano.ReqMetricInfo) (*rpcpiano.ResMonitoringData, error) {
-	series, err := influxdb.GetInfluxData(in)
-	if err != nil {
-		return nil, err
-	}
+	series := influxdb.GetInfluxData(in)
+
 	return series, nil
 }
