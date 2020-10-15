@@ -89,6 +89,7 @@ func (s *InfluxInfo) ReadMetric(metric string, subMetric string, period string, 
 		}
 	}
 
+	logger.Logger.Println("ReadMetric(): failed to get metric")
 	return nil, errors.New("failed to get metric")
 }
 
