@@ -8,6 +8,7 @@ import (
 	"hcc/piano/lib/config"
 	"hcc/piano/lib/logger"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -76,7 +77,7 @@ func (s *InfluxInfo) ReadMetric(metric string, subMetric string, period string, 
 	logger.Logger.Println("ReadMetric query : " + queryString)
 	fmt.Println("ReadMetric query : " + queryString)
 
-	query := influxdbClient.NewQuery(queryString, s.Database, "")
+	query := influxdbClient.NewQuery(queryString, s.Database, period)
 	res, _ := influx.Query(query)
 	if res.Err != "" {
 		return nil, errors.New(res.Err)
@@ -96,104 +97,22 @@ func (s *InfluxInfo) ReadMetric(metric string, subMetric string, period string, 
 // GenerateQuery : Generate the query for InfluxDB
 func (s *InfluxInfo) GenerateQuery(metric string, subMetric string, period string, aggregateType string, duration string, uuid string) (string, error) {
 
-	// 통계 기준 설정
-	switch aggregateType {
-	case "median":
-	case "middle":
-		aggregateType = "median"
-	case "mode":
-	case "frequency":
-		aggregateType = "mode"
-	case "average":
-		aggregateType = "mean"
-	default:
-		aggregateType = "mean"
-	}
-
-	// 시간 범위 설정
-	timeDuration := fmt.Sprintf("now() - %s", duration)
-
-	// 시간 단위 설정
-	var timeCriteria time.Duration
-	switch period {
-	case "s":
-		timeCriteria = time.Second
-	case "m":
-		timeCriteria = time.Minute
-	case "h":
-		timeCriteria = time.Hour
-	case "d":
-		timeCriteria = time.Hour * 24
-	}
-
 	// InfluxDB 쿼리 생성
-	var query influxBuilder.Query
+	var subMetricList = strings.Split(subMetric, ",")
 
-	switch metric {
-	case "cpu":
-		switch subMetric {
-		case "usage_system":
-			query = influxBuilder.NewQuery().On(metric).
-				Field("usage_system", aggregateType)
-			break
-		case "usage_user":
-			query = influxBuilder.NewQuery().On(metric).
-				Field("usage_system", aggregateType)
-			break
-		}
-		break
-	case "mem":
-		switch subMetric {
-		case "used_percent":
-			query = influxBuilder.NewQuery().On(metric).
-				Field("used_percent", aggregateType)
-			break
-		case "swap_total":
-			query = influxBuilder.NewQuery().On(metric).
-				Field("swap_total", aggregateType)
-			break
-		}
-		break
-	case "disk":
-		switch subMetric {
-		case "used_percent":
-			query = influxBuilder.NewQuery().On(metric).
-				Field("used_percent", aggregateType)
-			break
-		}
-		break
-	case "diskio":
-		switch subMetric {
-		case "read_bytes":
-			query = influxBuilder.NewQuery().On(metric).
-				Field("read_bytes", aggregateType)
-			break
-		}
-		break
-	case "net":
-		switch subMetric {
-		case "bytes_recv":
-			query = influxBuilder.NewQuery().On(metric).
-				Field("bytes_recv", aggregateType)
-			break
-		case "bytes_sent":
-			query = influxBuilder.NewQuery().On(metric).
-				Field("bytes_sent", aggregateType)
-			break
-		}
-		break
-	default:
-		return "", errors.New("not found metric")
+	query := influxBuilder.NewQuery().On(metric)
+
+	for _, sub := range subMetricList {
+		query = query.Field(sub, "")
 	}
 
-	hostname := uuid
-	query = query.Where("time", influxBuilder.MoreThan, timeDuration).
-		And("\"host\"", influxBuilder.Equal, "'"+hostname+"'").
-		GroupByTime(timeCriteria).
-		GroupByTag("\"host\"").
-		Fill(influxBuilder.None).
-		OrderByTime("ASC")
+	query = query.Where("host", influxBuilder.Equal, influxBuilder.String(uuid))
+	if metric == "cpu" {
+		query = query.And("cpu", influxBuilder.Equal, influxBuilder.String("cpu-total"))
+	}
 
+	limits, _ := strconv.Atoi(duration)
+	query = query.OrderByTime("DESC").Limit(limits)
 	queryString := query.Build()
 
 	return queryString, nil
