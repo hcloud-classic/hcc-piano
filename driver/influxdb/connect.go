@@ -110,6 +110,9 @@ func (s *InfluxInfo) GenerateQuery(metric string, subMetric string, period strin
 	if metric == "cpu" {
 		query = query.And("cpu", influxBuilder.Equal, influxBuilder.String("cpu-total"))
 	}
+	if aggregateType != "" {
+		query = query.And("time", influxBuilder.MoreThan, aggregateType)
+	}
 
 	limits, _ := strconv.Atoi(duration)
 	query = query.OrderByTime("DESC").Limit(limits)
