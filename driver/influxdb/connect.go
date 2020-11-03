@@ -103,12 +103,19 @@ func (s *InfluxInfo) GenerateQuery(metric string, subMetric string, period strin
 	query := influxBuilder.NewQuery().On(metric)
 
 	for _, sub := range subMetricList {
-		query = query.Field(sub, "")
+		if metric == "net" {
+			query = query.Field(sub, "difference")
+		} else {
+			query = query.Field(sub, "")
+		}
 	}
 
 	query = query.Where("host", influxBuilder.Equal, influxBuilder.String(uuid))
 	if metric == "cpu" {
 		query = query.And("cpu", influxBuilder.Equal, influxBuilder.String("cpu-total"))
+	}
+	if metric == "net" {
+		query = query.And("interface", influxBuilder.Equal, influxBuilder.String("eth0"))
 	}
 	if aggregateType != "" {
 		query = query.And("time", influxBuilder.MoreThan, aggregateType)
