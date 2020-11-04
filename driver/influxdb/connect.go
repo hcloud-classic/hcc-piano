@@ -117,6 +117,9 @@ func (s *InfluxInfo) GenerateQuery(metric string, subMetric string, period strin
 	if metric == "net" {
 		query = query.And("interface", influxBuilder.Equal, influxBuilder.String("eth0"))
 	}
+	if metric == "disk" {
+		query = query.And("path", influxBuilder.Equal, influxBuilder.String("/"))
+	}
 	if aggregateType != "" {
 		query = query.And("time", influxBuilder.MoreThan, aggregateType)
 	}
