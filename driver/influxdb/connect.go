@@ -3,13 +3,16 @@ package influxdb
 import (
 	"errors"
 	"fmt"
-	influxBuilder "github.com/Scalingo/go-utils/influx"
-	influxdbClient "github.com/influxdata/influxdb1-client/v2"
-	"hcc/piano/lib/config"
-	"hcc/piano/lib/logger"
 	"strconv"
 	"strings"
 	"time"
+
+	influxBuilder "github.com/Scalingo/go-utils/influx"
+	influxdbClient "github.com/influxdata/influxdb1-client/v2"
+
+	"hcc/piano/lib/config"
+	"hcc/piano/lib/logger"
+	"hcc/piano/model"
 )
 
 // HostInfo : Contain infos of InfluxDB's host
@@ -66,66 +69,55 @@ func (s *InfluxInfo) InitInfluxDB() error {
 }
 
 // ReadMetric : Read metrics from InfluxDB
-func (s *InfluxInfo) ReadMetric(metric string, subMetric string, period string, aggregateType string, duration string, uuid string) (interface{}, error) {
-	logger.Logger.Println("ReadMetric")
+func (s *InfluxInfo) ReadMetric(metricInfo model.MetricInfo) (interface{}, error) {
 	influx := s.Clients[0]
 
-	queryString, err := s.GenerateQuery(metric, subMetric, period, aggregateType, duration, uuid)
+	queryString, err := s.GenerateQuery(metricInfo)
 	if err != nil {
 		return nil, err
 	}
 	logger.Logger.Println("ReadMetric query : " + queryString)
 	fmt.Println("ReadMetric query : " + queryString)
 
-	query := influxdbClient.NewQuery(queryString, s.Database, period)
+	query := influxdbClient.NewQuery(queryString, s.Database, metricInfo.Period)
 	res, _ := influx.Query(query)
+
 	if res.Err != "" {
+		logger.Logger.Println("ReadMetric(): res.Err")
 		return nil, errors.New(res.Err)
 	}
 
-	if len(res.Results) != 0 {
-		if len(res.Results[0].Series) != 0 {
-			logger.Logger.Println("ReadMetric - series")
-			return res.Results[0].Series[0], nil
-		}
-	}
-
-	logger.Logger.Println("ReadMetric(): failed to get metric")
-	return nil, errors.New("failed to get metric")
+	return res.Results, nil
 }
 
 // GenerateQuery : Generate the query for InfluxDB
-func (s *InfluxInfo) GenerateQuery(metric string, subMetric string, period string, aggregateType string, duration string, uuid string) (string, error) {
+func (s *InfluxInfo) GenerateQuery(metricInfo model.MetricInfo) (string, error) {
 
 	// InfluxDB 쿼리 생성
-	var subMetricList = strings.Split(subMetric, ",")
+	var subMetricList = strings.Split(metricInfo.SubMetric, ",")
+	var aggregateFnList = strings.Split(metricInfo.AggregateFn, ",")
 
-	query := influxBuilder.NewQuery().On(metric)
+	fmt.Println(metricInfo.AggregateFn)
 
-	for _, sub := range subMetricList {
-		if metric == "net" {
-			query = query.Field(sub, "difference")
-		} else {
-			query = query.Field(sub, "")
-		}
+	query := influxBuilder.NewQuery().On(metricInfo.Metric)
+
+	for index, sub := range subMetricList {
+		query = query.Field(sub, aggregateFnList[index])
 	}
 
-	query = query.Where("host", influxBuilder.Equal, influxBuilder.String(uuid))
-	if metric == "cpu" {
+	query = query.Where("host", influxBuilder.Equal, influxBuilder.String(metricInfo.UUID))
+	if metricInfo.Metric == "cpu" {
 		query = query.And("cpu", influxBuilder.Equal, influxBuilder.String("cpu-total"))
 	}
-	if metric == "net" {
-		query = query.And("interface", influxBuilder.Equal, influxBuilder.String("eth0"))
+	if metricInfo.Time != "" {
+		query = query.And("time", influxBuilder.MoreThan, metricInfo.Time)
 	}
-	if metric == "disk" {
-		query = query.And("path", influxBuilder.Equal, influxBuilder.String("/"))
-	}
-	if aggregateType != "" {
-		query = query.And("time", influxBuilder.MoreThan, aggregateType)
+	if metricInfo.GroupBy != "" {
+		query = query.GroupByTag(strings.Split(metricInfo.GroupBy, ",")...)
 	}
 
-	limits, _ := strconv.Atoi(duration)
-	query = query.OrderByTime("DESC").Limit(limits)
+	limit, _ := strconv.Atoi(metricInfo.Limit)
+	query = query.OrderByTime("DESC").Limit(limit)
 	queryString := query.Build()
 
 	return queryString, nil
