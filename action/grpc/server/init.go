@@ -3,7 +3,7 @@ package server
 import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
-	pb "hcc/piano/action/grpc/pb/rpcpiano"
+	"github.com/hcloud-classic/pb"
 	"hcc/piano/lib/config"
 	"hcc/piano/lib/logger"
 	"net"
