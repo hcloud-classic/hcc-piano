@@ -2,15 +2,15 @@ package server
 
 import (
 	"context"
-	"hcc/piano/action/grpc/pb/rpcpiano"
+	"github.com/hcloud-classic/pb"
 	"hcc/piano/driver/influxdb"
 )
 
 type pianoServer struct {
-	rpcpiano.UnimplementedPianoServer
+	pb.UnimplementedPianoServer
 }
 
-func (s *pianoServer) Telegraph(ctx context.Context, in *rpcpiano.ReqMetricInfo) (*rpcpiano.ResMonitoringData, error) {
+func (s *pianoServer) Telegraph(ctx context.Context, in *pb.ReqMetricInfo) (*pb.ResMonitoringData, error) {
 	series := influxdb.GetInfluxData(in)
 
 	return series, nil
