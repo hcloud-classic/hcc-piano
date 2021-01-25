@@ -203,6 +203,10 @@ github.com/hashicorp/go-version v1.2.0/go.mod h1:fltr4n8CU8Ke44wwGCBoEymUuxUHl09
 github.com/hashicorp/golang-lru v0.5.0/go.mod h1:/m3WP610KZHVQ1SGc6re/UDhFvYD7pJ4Ao+sR/qLZy8=
 github.com/hashicorp/golang-lru v0.5.1/go.mod h1:/m3WP610KZHVQ1SGc6re/UDhFvYD7pJ4Ao+sR/qLZy8=
 github.com/hashicorp/hcl v1.0.0/go.mod h1:E5yfLk+7swimpb2L/Alb/PJmXilQ/rhwaUYs4T20WEQ=
+github.com/hcloud-classic/hcc_errors v1.1.1 h1:KbHwNb1MrVh6Jbcza7KdUOydyNmd+kF+uG4cuu1aOv0=
+github.com/hcloud-classic/hcc_errors v1.1.1/go.mod h1:C3s9vUbHj0vZ+CSJMbSHGo05ZoJmik4t9z/NK4ECanU=
+github.com/hcloud-classic/hcc_errors v1.1.2 h1:7AZIrc7SoqrwBNstAUvmbJszkG2e9Wquh6qurFdpQQk=
+github.com/hcloud-classic/hcc_errors v1.1.2/go.mod h1:C3s9vUbHj0vZ+CSJMbSHGo05ZoJmik4t9z/NK4ECanU=
 github.com/hcloud-classic/hcc_errors v1.1.3 h1:6v6kp7OGHROiIbi1ltj+gA0/zTL224TpXbtoe54qQf4=
 github.com/hcloud-classic/hcc_errors v1.1.3/go.mod h1:C3s9vUbHj0vZ+CSJMbSHGo05ZoJmik4t9z/NK4ECanU=
 github.com/hpcloud/tail v1.0.0/go.mod h1:ab1qPbhIpdTxEkNHXyeSf5vhxWSCs/tWer42PpOxQnU=

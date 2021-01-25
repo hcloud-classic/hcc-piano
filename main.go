@@ -2,10 +2,10 @@ package main
 
 import (
 	"fmt"
+	"github.com/hcloud-classic/hcc_errors"
 	"hcc/piano/action/grpc/server"
 	"hcc/piano/driver/influxdb"
 	"hcc/piano/lib/config"
-	"github.com/hcloud-classic/hcc_errors"
 	"hcc/piano/lib/logger"
 	"os"
 	"os/signal"
@@ -16,16 +16,14 @@ import (
 func init() {
 	err := logger.Init()
 	if err != nil {
-		hcc_errors.SetErrLogger(logger.Logger)
-		hcc_errors.NewHccError(hcc_errors.PianoInternalInitFail, "logger.Init(): "+err.Error()).Fatal()
+		err.Fatal()
 	}
-	hcc_errors.SetErrLogger(logger.Logger)
 
-	config.Init()
+	config.Parser()
 
-	err = influxdb.Init()
-	if err != nil {
-		hcc_errors.NewHccError(hcc_errors.PianoInternalInitFail, "influxdb.Init(): "+err.Error()).Fatal()
+	errors := influxdb.Init()
+	if errors != nil {
+		hcc_errors.NewHccError(hcc_errors.PianoInternalInitFail, "influxdb.Init(): "+errors.Error()).Fatal()
 	}
 
 	logger.Logger.Println("Connected to InfluxDB (" + config.Influxdb.Address + ":" +
