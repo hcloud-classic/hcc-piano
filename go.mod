@@ -5,7 +5,7 @@ go 1.13
 require (
 	github.com/Scalingo/go-utils v5.6.1+incompatible
 	github.com/Terry-Mao/goconf v0.0.0-20161115082538-13cb73d70c44
-	github.com/hcloud-classic/hcc_errors v1.1.3
+	github.com/hcloud-classic/hcc_errors v1.1.2
 	github.com/hcloud-classic/pb v0.0.0
 	github.com/influxdata/influxdb v1.8.3 // indirect
 	github.com/influxdata/influxdb1-client v0.0.0-20190809212627-fc22c7df067e
