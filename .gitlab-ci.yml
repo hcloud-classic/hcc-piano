@@ -1,64 +1,48 @@
 stages:
   - init
-  - pb
   - test
   - build
   - run
 
 before_script:
-  - export GOROOT="/opt/go"
+  - export GOROOT="/usr/local/go"
   - export GOPATH="/home/gitlab-runner/go"
   - export PATH="$PATH:$GOROOT/bin:$GOPATH/bin"
-
-pb:
-  stage: pb
-  script:
-    - export BUILD_DIR=$PWD
-    - cd $GOPATH/src/hcc/melody
-    - gmake
-    - cd $BUILD_DIR
-    - rm -rf ../pb
-    - cp -Rp $GOPATH/src/hcc/pb ../pb
 
 copy_dir:
   stage: init
   script:
-    - gmake copy_dir
+    - make copy_dir
+    - ln -s $GOPATH/src/hcc/pb ../pb
 
 unit_tests:
   stage: test
   script:
-    - gmake test
+    - make test
 
 race_detector:
   stage: test
   script:
-    - gmake race
+    - make race
 
 code_coverage:
   stage: test
   script:
-    - gmake coverage
+    - make coverage
 #  only:
 #  - master
 
 go_report:
   stage: test
   script:
-    - gmake goreport
+    - make goreport
 #  only:
 #  - master
-
-#lint_code:
-#  stage: test
-#  script:
-#    - gmake lint_dep
-#    - gmake lint
 
 build:
   stage: build
   script:
-    - gmake
+    - make
     - sudo /usr/sbin/service piano stop
     - sudo cp $PWD/piano /bin/piano
     - sudo chmod 755 /bin/piano
