@@ -51,7 +51,7 @@ func parseInfluxdb() {
 		errors.NewHccError(errors.PianoInternalParsingError, "influxdb port").Fatal()
 	}
 
-	Influxdb.Db, err = config.InfluxdbConfig.String("db")
+	Influxdb.Db, err = config.InfluxdbConfig.String("database")
 	if err != nil {
 		errors.NewHccError(errors.PianoInternalParsingError, "influxdb database").Fatal()
 	}
