@@ -1,13 +1,15 @@
 package server
 
 import (
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/reflection"
-	"github.com/hcloud-classic/pb"
-	"hcc/piano/lib/config"
-	"hcc/piano/lib/logger"
 	"net"
 	"strconv"
+
+	"hcc/piano/lib/config"
+	"hcc/piano/lib/logger"
+
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
+	"innogrid.com/hcloud-classic/pb"
 )
 
 // Init : Initialize gRPC server
