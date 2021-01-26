@@ -1,8 +1,9 @@
 package config
 
 type grpc struct {
-	Port int64 `goconf:"grpc:port"` // Port : Port number for listening gRPC request
+	Port             int64 `goconf:"grpc:port"`               // Port : Port number for listening graphql request via http server
+	RequestTimeoutMs int64 `goconf:"grpc:request_timeout_ms"` // RequestTimeoutMs : Timeout for HTTP request
 }
 
-// Grpc : Grpc config structure
+// HTTP : http config structure
 var Grpc grpc
