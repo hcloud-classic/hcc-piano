@@ -4,9 +4,10 @@ import (
 	"encoding/json"
 
 	"hcc/piano/action/grpc/errconv"
-	"github.com/hcloud-classic/pb"
-	"github.com/hcloud-classic/hcc_errors"
 	"hcc/piano/model"
+
+	"innogrid.com/hcloud-classic/hcc_errors"
+	"innogrid.com/hcloud-classic/pb"
 )
 
 // GetInfluxData - cgs

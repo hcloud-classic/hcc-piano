@@ -2,15 +2,17 @@ package main
 
 import (
 	"fmt"
-	"github.com/hcloud-classic/hcc_errors"
-	"hcc/piano/action/grpc/server"
-	"hcc/piano/driver/influxdb"
-	"hcc/piano/lib/config"
-	"hcc/piano/lib/logger"
 	"os"
 	"os/signal"
 	"strconv"
 	"syscall"
+
+	"hcc/piano/action/grpc/server"
+	"hcc/piano/driver/influxdb"
+	"hcc/piano/lib/config"
+	"hcc/piano/lib/logger"
+
+	"innogrid.com/hcloud-classic/hcc_errors"
 )
 
 func init() {

@@ -2,8 +2,9 @@ package server
 
 import (
 	"context"
-	"github.com/hcloud-classic/pb"
 	"hcc/piano/driver/influxdb"
+
+	"innogrid.com/hcloud-classic/pb"
 )
 
 type pianoServer struct {
