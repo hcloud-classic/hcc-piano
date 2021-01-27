@@ -2,7 +2,7 @@ stages:
   - init
   - test
   - build
-  - run
+  - deploy
 
 before_script:
   - export GOROOT="/usr/local/go"
@@ -31,24 +31,25 @@ code_coverage:
   stage: test
   script:
     - make coverage
-#  only:
-#  - master
 
 go_report:
   stage: test
   script:
     - make goreport
-#  only:
-#  - master
 
 build:
   stage: build
   script:
     - make
+
+deploy:
+  stage: deploy
+  script:
+    - make # Binary file is removed at start of new stage. Rebuild.
     - sudo /usr/sbin/service piano stop
     - sudo cp $PWD/piano /bin/piano
     - sudo chmod 755 /bin/piano
     - sudo /usr/sbin/service piano start
     - echo "Finished"
-#  only:
-#  - master
+  only:
+  - master
