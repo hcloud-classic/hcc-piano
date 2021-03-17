@@ -12,20 +12,29 @@ import (
 	"innogrid.com/hcloud-classic/pb"
 )
 
-// Init : Initialize gRPC server
-func Init() {
+type server struct {
+	pb.UnimplementedPianoServer
+}
+
+var srv *grpc.Server
+
+func InitGRPCServer() {
 	lis, err := net.Listen("tcp", ":"+strconv.Itoa(int(config.Grpc.Port)))
 	if err != nil {
 		logger.Logger.Fatalf("failed to listen: %v", err)
 	}
-	s := grpc.NewServer()
-	pb.RegisterPianoServer(s, &pianoServer{})
-
-	// Register reflection service on gRPC server.
-	reflection.Register(s)
-
+	defer lis.Close()
 	logger.Logger.Println("Opening gRPC server on port " + strconv.Itoa(int(config.Grpc.Port)) + "...")
-	if err := s.Serve(lis); err != nil {
+
+	srv = grpc.NewServer()
+	pb.RegisterPianoServer(srv, &pianoServer{})
+	reflection.Register(srv)
+
+	if err := srv.Serve(lis); err != nil {
 		logger.Logger.Fatalf("failed to serve: %v", err)
 	}
+}
+
+func CleanGRPCServer() {
+	srv.Stop()
 }

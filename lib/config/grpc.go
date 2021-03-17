@@ -5,5 +5,12 @@ type grpc struct {
 	RequestTimeoutMs int64 `goconf:"grpc:request_timeout_ms"` // RequestTimeoutMs : Timeout for HTTP request
 }
 
-// HTTP : http config structure
 var Grpc grpc
+
+type harp struct {
+	Address          string `goconf:"harp:harp_server_address"`
+	Port             int64  `goconf:"harp:harp_server_port"`
+	RequestTimeoutMs int64  `goconf:"harp:harp_request_timeout_ms"`
+}
+
+var Harp harp

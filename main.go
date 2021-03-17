@@ -4,15 +4,16 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"strconv"
 	"syscall"
 
+	"hcc/piano/action/grpc/client"
 	"hcc/piano/action/grpc/server"
+	"hcc/piano/driver/billing"
 	"hcc/piano/driver/influxdb"
+
 	"hcc/piano/lib/config"
 	"hcc/piano/lib/logger"
-
-	"innogrid.com/hcloud-classic/hcc_errors"
+	"hcc/piano/lib/mysql"
 )
 
 func init() {
@@ -23,18 +24,29 @@ func init() {
 
 	config.Parser()
 
-	errors := influxdb.Init()
-	if errors != nil {
-		hcc_errors.NewHccError(hcc_errors.PianoInternalInitFail, "influxdb.Init(): "+errors.Error()).Fatal()
+	err = influxdb.Init()
+	if err != nil {
+		err.Fatal()
 	}
 
-	logger.Logger.Println("Connected to InfluxDB (" + config.Influxdb.Address + ":" +
-		strconv.FormatInt(config.Influxdb.Port, 10) + ")")
+	err = mysql.Init()
+	if err != nil {
+		err.Fatal()
+	}
 
+	client.InitGRPCClient()
+
+	err = billing.Init()
+	if err != nil {
+		err.Fatal()
+	}
 }
 
 func end() {
 	logger.End()
+	mysql.End()
+	client.CleanGRPCClient()
+	server.CleanGRPCServer()
 }
 
 func main() {
@@ -48,5 +60,5 @@ func main() {
 		os.Exit(0)
 	}()
 
-	server.Init()
+	server.InitGRPCServer()
 }
