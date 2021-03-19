@@ -7,4 +7,6 @@ var configLocation = "/etc/hcc/piano/piano.conf"
 type pianoConfig struct {
 	InfluxdbConfig *goconf.Section
 	GrpcConfig     *goconf.Section
+	MysqlConfig    *goconf.Section
+	HarpConfig     *goconf.Section
 }
