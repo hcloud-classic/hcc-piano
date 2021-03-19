@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"hcc/piano/lib/logger"
+	//"hcc/piano/lib/logger"
 	"hcc/piano/lib/mysql"
 	"hcc/piano/model"
 
@@ -123,9 +123,9 @@ func InsertVolumeBillingInfo(infoList []model.VolumeBill) *errors.HccError {
 			info.HDDSize,
 			info.SSDSize,
 			info.NVMESize,
-			info.HDDChargePerKB,
-			info.SSDChargePerKB,
-			info.NVMEChargePerKB,
+			info.HDDChargePerGB,
+			info.SSDChargePerGB,
+			info.NVMEChargePerGB,
 			info.DiscountRate)
 	}
 
@@ -153,9 +153,9 @@ func InsertDailyInfo() *errors.HccError {
 	return err
 }
 
-func GetBill(groupId int, start, end, billType string) (*mysql.Rows, *errors.HccError) {
-	billIdStart := strconv.Itoa(groupId) + start
-	billIdEnd := strconv.Itoa(groupId) + end
+func GetBill(groupID int, start, end, billType string) (*mysql.Rows, *errors.HccError) {
+	billIdStart := strconv.Itoa(groupID) + start
+	billIdEnd := strconv.Itoa(groupID) + end
 	billType = strings.ToLower(billType)
 	sql := ""
 
@@ -167,10 +167,50 @@ func GetBill(groupId int, start, end, billType string) (*mysql.Rows, *errors.Hcc
 	case "yearly":
 		sql = "SELECT * FROM `piano`.`" + billType + "_bill` WHERE `bill_id` BETWEEN " + billIdStart + " AND " + billIdEnd + ";"
 	default:
-		return nil, errors.NewHccError(errors.PianoSQLOperationFail, " -> Unsupport billing type")
+		return nil, errors.NewHccError(errors.PianoSQLOperationFail, "DAO(GetBill) -> Unsupport billing type")
 	}
 
-	logger.Logger.Println("sql: ", sql)
+	res, err := sendQuery(sql)
+
+	return res, err
+}
+
+func GetBillInfo(groupID int, date, billType, category string) (*mysql.Rows, *errors.HccError) {
+	billType = strings.ToLower(billType)
+	category = strings.ToLower(category)
+	dateStart := date
+	dateEnd, _ := strconv.Atoi(date)
+
+	switch billType {
+	case "daily":
+		break
+	case "monthly":
+		dateEnd += 100
+		if dateEnd%10000 > 12 {
+			dateEnd += 10000
+			dateEnd -= 100
+		}
+	case "yearly":
+		dateEnd += 10000
+	default:
+		return nil, errors.NewHccError(errors.PianoSQLOperationFail, "DAO(GetBillInfo) -> Unsupport billing type")
+	}
+
+	switch category {
+	case "network":
+		fallthrough
+	case "server":
+		fallthrough
+	case "node":
+		fallthrough
+	case "volume":
+		break
+	default:
+		return nil, errors.NewHccError(errors.PianoSQLOperationFail, "DAO(GetBillInfo) -> Unsupport category")
+	}
+
+	sql := "SELECT * FROM `piano`.`" + category + "_billing_info` WHERE `group_id`=" + strconv.Itoa(groupID) + " AND `date` BETWEEN DATE(" + dateStart + ") AND DATE(" + strconv.Itoa(dateEnd) + ");"
+
 	res, err := sendQuery(sql)
 
 	return res, err

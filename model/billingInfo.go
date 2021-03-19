@@ -54,8 +54,16 @@ type VolumeBill struct {
 	HDDSize         uint64  `json:"hdd_size"`
 	SSDSize         uint64  `json:"ssd_size"`
 	NVMESize        uint64  `json:"nvme_size"`
-	HDDChargePerKB  float32 `json:"hdd_charge_per_KB"`
-	SSDChargePerKB  float32 `json:"ssd_charge_per_KB"`
-	NVMEChargePerKB float32 `json:"nvme_charge_per_KB"`
+	HDDChargePerGB  float32 `json:"hdd_charge_per_GB"`
+	SSDChargePerGB  float32 `json:"ssd_charge_per_GB"`
+	NVMEChargePerGB float32 `json:"nvme_charge_per_GB"`
 	DiscountRate    float32 `json:"discount_rate"`
+}
+
+type BillDetail struct {
+	BillID        int          `json:"bill_id"`
+	DetailNode    *NodeBill    `json: "detail_node"`
+	DetailServer  *ServerBill  `json: "detail_server"`
+	DetailNetwork *NetworkBill `json: "detail_network"`
+	DetailVolume  *VolumeBill  `json: "detail_volume"`
 }

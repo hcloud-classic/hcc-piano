@@ -51,19 +51,19 @@ func (bill *Billing) RunUpdateTimer() {
 	}()
 }
 
-func (bil *Billing) UpdateNetworkBillingInfo(groupID *[]int32) *errors.HccErrorStack {
+func (bil *Billing) updateNetworkBillingInfo(groupID *[]int32) *errors.HccErrorStack {
 	return nil
 }
 
-func (bill *Billing) UpdateNodeBillingInfo(groupID *[]int32) *errors.HccErrorStack {
+func (bill *Billing) updateNodeBillingInfo(groupID *[]int32) *errors.HccErrorStack {
 	return nil
 }
 
-func (bill *Billing) UpdateServerBillingInfo(groupID *[]int32) *errors.HccErrorStack {
+func (bill *Billing) updateServerBillingInfo(groupID *[]int32) *errors.HccErrorStack {
 	return nil
 }
 
-func (bill *Billing) UpdateVolumeBillingInfo(groupID *[]int32) *errors.HccErrorStack {
+func (bill *Billing) updateVolumeBillingInfo(groupID *[]int32) *errors.HccErrorStack {
 	return nil
 }
 
@@ -75,20 +75,77 @@ func (bill *Billing) UpdateAllBillingData() *errors.HccErrorStack {
 	return nil
 }
 
-func (bill *Billing) ReadNetworkBillingInfo(dateStart, dateEnd time.Time, groupID *[]int32) *errors.HccErrorStack {
-	return nil
+func (bill *Billing) readNetworkBillingInfo(groupID int, date, billType string) (*model.NetworkBill, *errors.HccError) {
+	var billInfo model.NetworkBill
+
+	res, err := dao.GetBillInfo(groupID, date, billType, "network")
+	if err == nil {
+		for res.Next() {
+			res.Scan(&billInfo.GroupID,
+				&billInfo.Date,
+				&billInfo.SubnetCount,
+				&billInfo.AIPCount,
+				&billInfo.SubnetChargePerCnt,
+				&billInfo.AIPChargePerCnt,
+				&billInfo.DiscountRate)
+		}
+	}
+	return &billInfo, err
 }
 
-func (bill *Billing) ReadNodeBillingInfo(dateStart, dateEnd time.Time, groupID *[]int32) *errors.HccErrorStack {
-	return nil
+func (bill *Billing) readNodeBillingInfo(groupID int, date, billType string) (*model.NodeBill, *errors.HccError) {
+	var billInfo model.NodeBill
+
+	res, err := dao.GetBillInfo(groupID, date, billType, "node")
+	if err == nil {
+		for res.Next() {
+			res.Scan(&billInfo.GroupID,
+				&billInfo.Date,
+				&billInfo.NodeUUID,
+				&billInfo.DefChargeCPU,
+				&billInfo.DefChargeMEM,
+				&billInfo.DefChargeNIC,
+				&billInfo.DiscountRate)
+		}
+	}
+	return &billInfo, err
 }
 
-func (bill *Billing) ReadServerBillingInfo(dateStart, dateEnd time.Time, groupID *[]int32) *errors.HccErrorStack {
-	return nil
+func (bill *Billing) readServerBillingInfo(groupID int, date, billType string) (*model.ServerBill, *errors.HccError) {
+	var billInfo model.ServerBill
+
+	res, err := dao.GetBillInfo(groupID, date, billType, "server")
+	if err == nil {
+		for res.Next() {
+			res.Scan(&billInfo.GroupID,
+				&billInfo.Date,
+				&billInfo.ServerUUID,
+				&billInfo.NetworkTraffic,
+				&billInfo.TrafficChargePerKB,
+				&billInfo.DiscountRate)
+		}
+	}
+	return &billInfo, err
 }
 
-func (bill *Billing) ReadVolumeBillingInfo(dateStart, dateEnd time.Time, groupID *[]int32) *errors.HccErrorStack {
-	return nil
+func (bill *Billing) readVolumeBillingInfo(groupID int, date, billType string) (*model.VolumeBill, *errors.HccError) {
+	var billInfo model.VolumeBill
+
+	res, err := dao.GetBillInfo(groupID, date, billType, "volume")
+	if err == nil {
+		for res.Next() {
+			res.Scan(&billInfo.GroupID,
+				&billInfo.Date,
+				&billInfo.HDDSize,
+				&billInfo.SSDSize,
+				&billInfo.NVMESize,
+				&billInfo.HDDChargePerGB,
+				&billInfo.SSDChargePerGB,
+				&billInfo.NVMEChargePerGB,
+				&billInfo.DiscountRate)
+		}
+	}
+	return &billInfo, err
 }
 
 func (bill *Billing) ReadBillingData(groupID *[]int32, dateStart, dateEnd, billType string) (*[][]model.Bill, *errors.HccErrorStack) {
@@ -118,6 +175,27 @@ func (bill *Billing) ReadBillingData(groupID *[]int32, dateStart, dateEnd, billT
 	return &billList, errStack
 }
 
-func (bill *Billing) ReadAllBillingData(dateStart, dateEnd time.Time, billType string) (*[]*model.Bill, *errors.HccErrorStack) {
-	return nil, nil
+func (bill *Billing) ReadBillingDetail(groupID int32, date, billType string) (*model.BillDetail, *errors.HccErrorStack) {
+	var billingDetail model.BillDetail
+	var err *errors.HccError
+	errStack := errors.NewHccErrorStack()
+
+	billingDetail.DetailNode, err = bill.readNodeBillingInfo(int(groupID), date, billType)
+	if err != nil {
+		errStack.Push(err)
+	}
+	billingDetail.DetailServer, err = bill.readServerBillingInfo(int(groupID), date, billType)
+	if err != nil {
+		errStack.Push(err)
+	}
+	billingDetail.DetailNetwork, err = bill.readNetworkBillingInfo(int(groupID), date, billType)
+	if err != nil {
+		errStack.Push(err)
+	}
+	billingDetail.DetailVolume, err = bill.readVolumeBillingInfo(int(groupID), date, billType)
+	if err != nil {
+		errStack.Push(err)
+	}
+
+	return &billingDetail, errStack
 }

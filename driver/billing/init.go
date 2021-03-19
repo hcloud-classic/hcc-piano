@@ -12,12 +12,12 @@ var BillingDriver *Billing = nil
 
 func reserveRegisterUpdateTimer() {
 	defer logger.Logger.Println("Update billing info.")
+	logger.Logger.Println("Register billing info update timer")
 
 	now := time.Now().Add(1 * time.Hour)
 	<-time.After(time.Until(time.Date(now.Year(), now.Month(), now.Day(),
 		now.Hour(), 0, 0, 0, now.Location())))
 
-	logger.Logger.Println("Register billing info update timer")
 	BillingDriver.RunUpdateTimer()
 }
 
