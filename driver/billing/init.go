@@ -8,10 +8,14 @@ import (
 	errors "innogrid.com/hcloud-classic/hcc_errors"
 )
 
-var BillingDriver *Billing = nil
+var BillingDriver *Billing = &Billing{
+	lastUpdate:  time.Now(),
+	updateTimer: nil,
+	StopTimer:   nil,
+}
 
 func reserveRegisterUpdateTimer() {
-	defer logger.Logger.Println("Update billing info.")
+	defer BillingDriver.UpdateBillingInfo(&[]int32{1000, 1001, 1002})
 	logger.Logger.Println("Register billing info update timer")
 
 	now := time.Now().Add(1 * time.Hour)
@@ -22,13 +26,9 @@ func reserveRegisterUpdateTimer() {
 }
 
 func Init() *errors.HccError {
-	BillingDriver = &Billing{
-		lastUpdate:  time.Now(),
-		updateTimer: nil,
-		StopTimer:   nil,
-	}
 
 	logger.Logger.Println("Update billing info in boot up time")
+	BillingDriver.UpdateBillingInfo(&[]int32{1000, 1001, 1002})
 
 	go reserveRegisterUpdateTimer()
 

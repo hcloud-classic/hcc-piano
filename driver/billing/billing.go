@@ -3,11 +3,12 @@ package billing
 import (
 	"time"
 
+	errors "innogrid.com/hcloud-classic/hcc_errors"
+
+	"hcc/piano/action/grpc/client"
 	"hcc/piano/dao"
 	"hcc/piano/lib/logger"
 	"hcc/piano/model"
-
-	errors "innogrid.com/hcloud-classic/hcc_errors"
 )
 
 type Billing struct {
@@ -44,34 +45,70 @@ func (bill *Billing) RunUpdateTimer() {
 			case <-done:
 				return
 			case <-bill.updateTimer.C:
-				logger.Logger.Println("UPDATE Billing information")
+				logger.Logger.Println("UPDATE Billing information", []int32{1000, 1001, 1002})
+				BillingDriver.UpdateBillingInfo(&[]int32{1000, 1001, 1002})
 				break
 			}
 		}
 	}()
 }
 
-func (bil *Billing) updateNetworkBillingInfo(groupID *[]int32) *errors.HccErrorStack {
-	return nil
-}
+func (bill *Billing) UpdateBillingInfo(groupID *[]int32) *errors.HccErrorStack {
+	var err *errors.HccError
+	errStack := errors.NewHccErrorStack()
 
-func (bill *Billing) updateNodeBillingInfo(groupID *[]int32) *errors.HccErrorStack {
-	return nil
-}
+	nodeBillList, es := client.RC.GetNodeBillingInfo(groupID)
+	if es != nil {
+		errStack.Merge(es)
+	}
 
-func (bill *Billing) updateServerBillingInfo(groupID *[]int32) *errors.HccErrorStack {
-	return nil
-}
+	serverBillList, es := client.RC.GetServerBillingInfo(groupID)
+	if es != nil {
+		errStack.Merge(es)
+	}
 
-func (bill *Billing) updateVolumeBillingInfo(groupID *[]int32) *errors.HccErrorStack {
-	return nil
-}
+	networkBillList, es := client.RC.GetNetworkBillingInfo(groupID)
+	if es != nil {
+		errStack.Merge(es)
+	}
 
-func (bill *Billing) UpdateBillingData(groupID *[]int32) *errors.HccErrorStack {
-	return nil
-}
+	volumeBillList, es := client.RC.GetVolumeBillingInfo(groupID)
+	if es != nil {
+		errStack.Merge(es)
+	}
 
-func (bill *Billing) UpdateAllBillingData() *errors.HccErrorStack {
+	err = dao.InsertNodeBillingInfo(nodeBillList)
+	if err != nil {
+		errStack.Push(err)
+	}
+	err = dao.InsertServerBillingInfo(serverBillList)
+	if err != nil {
+		errStack.Push(err)
+	}
+	err = dao.InsertNetworkBillingInfo(networkBillList)
+	if err != nil {
+		errStack.Push(err)
+	}
+	err = dao.InsertVolumeBillingInfo(volumeBillList)
+	if err != nil {
+		errStack.Push(err)
+	}
+
+	if bill.lastUpdate.Day() != time.Now().Day() {
+		logger.Logger.Println("Update Daily Billing Info")
+		err = dao.InsertDailyInfo()
+		if err != nil {
+			errStack.Push(err)
+		} else {
+			bill.lastUpdate = time.Now()
+		}
+	}
+
+	if errStack.Len() > 0 {
+		errStack.Dump()
+		return errStack
+	}
+
 	return nil
 }
 

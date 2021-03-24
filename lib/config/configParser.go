@@ -12,21 +12,80 @@ var err error
 func parseHarp() {
 	config.HarpConfig = conf.Get("harp")
 	if config.HarpConfig == nil {
-		errors.NewHccError(errors.ViolinNoVNCInternalParsingError, "harp config").Fatal()
+		errors.NewHccError(errors.PianoInternalParsingError, "harp config").Fatal()
 	}
 
-	Harp = harp{}
 	Harp.Address, err = config.HarpConfig.String("harp_server_address")
 	if err != nil {
-		errors.NewHccError(errors.ViolinNoVNCInternalParsingError, "harp server address").Fatal()
+		errors.NewHccError(errors.PianoInternalParsingError, "harp server address").Fatal()
 	}
 	Harp.Port, err = config.HarpConfig.Int("harp_server_port")
 	if err != nil {
-		errors.NewHccError(errors.ViolinNoVNCInternalParsingError, "harp server port").Fatal()
+		errors.NewHccError(errors.PianoInternalParsingError, "harp server port").Fatal()
 	}
 	Harp.RequestTimeoutMs, err = config.HarpConfig.Int("harp_request_timeout_ms")
 	if err != nil {
-		errors.NewHccError(errors.ViolinNoVNCInternalParsingError, "harp timeout").Fatal()
+		errors.NewHccError(errors.PianoInternalParsingError, "harp timeout").Fatal()
+	}
+}
+
+func parseCello() {
+	config.CelloConfig = conf.Get("cello")
+	if config.CelloConfig == nil {
+		errors.NewHccError(errors.PianoInternalParsingError, "cello config").Fatal()
+	}
+
+	Cello.Address, err = config.CelloConfig.String("cello_server_address")
+	if err != nil {
+		errors.NewHccError(errors.PianoInternalParsingError, "cello server address").Fatal()
+	}
+	Cello.Port, err = config.CelloConfig.Int("cello_server_port")
+	if err != nil {
+		errors.NewHccError(errors.PianoInternalParsingError, "cello server port").Fatal()
+	}
+	Cello.RequestTimeoutMs, err = config.CelloConfig.Int("cello_request_timeout_ms")
+	if err != nil {
+		errors.NewHccError(errors.PianoInternalParsingError, "cello timeout").Fatal()
+	}
+}
+
+func parseFlute() {
+	config.FluteConfig = conf.Get("flute")
+	if config.FluteConfig == nil {
+		errors.NewHccError(errors.PianoInternalParsingError, "flute config").Fatal()
+	}
+
+	Flute.Address, err = config.FluteConfig.String("flute_server_address")
+	if err != nil {
+		errors.NewHccError(errors.PianoInternalParsingError, "flute server address").Fatal()
+	}
+	Flute.Port, err = config.FluteConfig.Int("flute_server_port")
+	if err != nil {
+		errors.NewHccError(errors.PianoInternalParsingError, "flute server port").Fatal()
+	}
+	Flute.RequestTimeoutMs, err = config.FluteConfig.Int("flute_request_timeout_ms")
+	if err != nil {
+		errors.NewHccError(errors.PianoInternalParsingError, "flute timeout").Fatal()
+	}
+}
+
+func parseViolin() {
+	config.ViolinConfig = conf.Get("violin")
+	if config.ViolinConfig == nil {
+		errors.NewHccError(errors.ViolinNoVNCInternalParsingError, "violin config").Fatal()
+	}
+
+	Violin.Address, err = config.ViolinConfig.String("violin_server_address")
+	if err != nil {
+		errors.NewHccError(errors.ViolinNoVNCInternalParsingError, "violin server address").Fatal()
+	}
+	Violin.Port, err = config.ViolinConfig.Int("violin_server_port")
+	if err != nil {
+		errors.NewHccError(errors.ViolinNoVNCInternalParsingError, "violin server port").Fatal()
+	}
+	Violin.RequestTimeoutMs, err = config.ViolinConfig.Int("violin_request_timeout_ms")
+	if err != nil {
+		errors.NewHccError(errors.ViolinNoVNCInternalParsingError, "violin timeout").Fatal()
 	}
 }
 
@@ -36,13 +95,15 @@ func parseGrpc() {
 		errors.NewHccError(errors.PianoInternalParsingError, "grpc config").Fatal()
 	}
 
-	Grpc = grpc{}
 	Grpc.Port, err = config.GrpcConfig.Int("port")
 	if err != nil {
 		errors.NewHccError(errors.PianoInternalParsingError, "grpc port").Fatal()
 	}
 
 	parseHarp()
+	parseCello()
+	parseFlute()
+	parseViolin()
 }
 
 func parseInfluxdb() {
@@ -51,8 +112,6 @@ func parseInfluxdb() {
 	if config.InfluxdbConfig == nil {
 		errors.NewHccError(errors.PianoInternalParsingError, "influxdb config").Fatal()
 	}
-
-	Influxdb = influxdb{}
 
 	Influxdb.ID, err = config.InfluxdbConfig.String("id")
 	if err != nil {
@@ -86,7 +145,6 @@ func parseMysql() {
 		errors.NewHccError(errors.ViolinNoVNCInternalParsingError, "mysql config").Fatal()
 	}
 
-	Mysql = mysql{}
 	Mysql.ID, err = config.MysqlConfig.String("id")
 	if err != nil {
 		errors.NewHccError(errors.ViolinNoVNCInternalParsingError, "mysql id").Fatal()
