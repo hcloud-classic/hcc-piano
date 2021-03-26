@@ -185,12 +185,12 @@ func (bill *Billing) readVolumeBillingInfo(groupID int, date, billType string) (
 	return &billInfo, err
 }
 
-func (bill *Billing) ReadBillingData(groupID *[]int32, dateStart, dateEnd, billType string) (*[][]model.Bill, *errors.HccErrorStack) {
+func (bill *Billing) ReadBillingData(groupID *[]int32, dateStart, dateEnd, billType string, row, page int) (*[][]model.Bill, *errors.HccErrorStack) {
 	var billList [][]model.Bill
 	errStack := errors.NewHccErrorStack()
 
 	for _, gid := range *groupID {
-		res, err := dao.GetBill(int(gid), dateStart, dateEnd, billType)
+		res, err := dao.GetBill(int(gid), dateStart, dateEnd, billType, row, page)
 		if err != nil {
 			errStack.Push(err)
 			continue
@@ -234,5 +234,9 @@ func (bill *Billing) ReadBillingDetail(groupID int32, date, billType string) (*m
 		errStack.Push(err)
 	}
 
+	logger.Logger.Println(*billingDetail.DetailNode)
+	logger.Logger.Println(*billingDetail.DetailServer)
+	logger.Logger.Println(*billingDetail.DetailNetwork)
+	logger.Logger.Println(*billingDetail.DetailVolume)
 	return &billingDetail, errStack
 }

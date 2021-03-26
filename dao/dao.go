@@ -157,7 +157,7 @@ func InsertDailyInfo() *errors.HccError {
 	return err
 }
 
-func GetBill(groupID int, start, end, billType string) (*mysql.Rows, *errors.HccError) {
+func GetBill(groupID int, start, end, billType string, row, page int) (*mysql.Rows, *errors.HccError) {
 	billIdStart := strconv.Itoa(groupID) + start
 	billIdEnd := strconv.Itoa(groupID) + end
 	billType = strings.ToLower(billType)
@@ -169,7 +169,8 @@ func GetBill(groupID int, start, end, billType string) (*mysql.Rows, *errors.Hcc
 	case "monthly":
 		fallthrough
 	case "yearly":
-		sql = "SELECT * FROM `piano`.`" + billType + "_bill` WHERE `bill_id` BETWEEN " + billIdStart + " AND " + billIdEnd + ";"
+		sql = "SELECT * FROM `piano`.`" + billType + "_bill` WHERE `bill_id` BETWEEN " + billIdStart + " AND " +
+			billIdEnd + " LIMIT " + strconv.Itoa(row) + " OFFSET " + strconv.Itoa(row*page) + ";"
 	default:
 		return nil, errors.NewHccError(errors.PianoSQLOperationFail, "DAO(GetBill) -> Unsupport billing type")
 	}

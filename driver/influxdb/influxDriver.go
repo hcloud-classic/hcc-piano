@@ -10,7 +10,6 @@ import (
 	"innogrid.com/hcloud-classic/pb"
 )
 
-// GetInfluxData - cgs
 func GetInfluxData(in *pb.ReqMetricInfo) *pb.ResMonitoringData {
 	var resMonitoringData pb.ResMonitoringData
 	var monitoringData pb.MonitoringData
