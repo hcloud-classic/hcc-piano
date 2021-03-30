@@ -61,9 +61,9 @@ type VolumeBill struct {
 }
 
 type BillDetail struct {
-	BillID        int          `json:"bill_id"`
-	DetailNode    *NodeBill    `json: "detail_node"`
-	DetailServer  *ServerBill  `json: "detail_server"`
-	DetailNetwork *NetworkBill `json: "detail_network"`
-	DetailVolume  *VolumeBill  `json: "detail_volume"`
+	BillID        int            `json:"bill_id"`
+	DetailNode    *[]NodeBill    `json: "detail_node"`
+	DetailServer  *[]ServerBill  `json: "detail_server"`
+	DetailNetwork *[]NetworkBill `json: "detail_network"`
+	DetailVolume  *[]VolumeBill  `json: "detail_volume"`
 }
