@@ -78,7 +78,6 @@ func (s *InfluxInfo) ReadMetric(metricInfo model.MetricInfo) (interface{}, error
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("ReadMetric query : " + queryString)
 
 	query := influxdbClient.NewQuery(queryString, s.Database, metricInfo.Period)
 	res, _ := influx.Query(query)

@@ -9,4 +9,7 @@ type pianoConfig struct {
 	GrpcConfig     *goconf.Section
 	MysqlConfig    *goconf.Section
 	HarpConfig     *goconf.Section
+	CelloConfig    *goconf.Section
+	FluteConfig    *goconf.Section
+	ViolinConfig   *goconf.Section
 }
