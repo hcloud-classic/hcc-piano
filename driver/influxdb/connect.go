@@ -9,7 +9,6 @@ import (
 
 	influxBuilder "github.com/Scalingo/go-utils/influx"
 	influxdbClient "github.com/influxdata/influxdb1-client/v2"
-	"innogrid.com/hcloud-classic/hcc_errors"
 
 	"hcc/piano/lib/config"
 	"hcc/piano/lib/logger"
@@ -34,7 +33,7 @@ type InfluxInfo struct {
 var Influx InfluxInfo
 
 // Init : Initialize InfluxDB connection
-func Init() *hcc_errors.HccError {
+func Init() error {
 	hostInfo := HostInfo{
 		URL:      "http://" + config.Influxdb.Address + ":" + strconv.FormatInt(config.Influxdb.Port, 10),
 		Username: config.Influxdb.ID,
@@ -43,8 +42,7 @@ func Init() *hcc_errors.HccError {
 	Influx = InfluxInfo{HostInfo: hostInfo, Database: config.Influxdb.Db}
 	err := Influx.InitInfluxDB()
 	if err != nil {
-		return hcc_errors.NewHccError(
-			hcc_errors.PianoInternalInitFail, "influxdb.Init(): "+err.Error())
+		return err
 	}
 	return nil
 }
@@ -78,6 +76,8 @@ func (s *InfluxInfo) ReadMetric(metricInfo model.MetricInfo) (interface{}, error
 	if err != nil {
 		return nil, err
 	}
+	logger.Logger.Println("ReadMetric query : " + queryString)
+	fmt.Println("ReadMetric query : " + queryString)
 
 	query := influxdbClient.NewQuery(queryString, s.Database, metricInfo.Period)
 	res, _ := influx.Query(query)
