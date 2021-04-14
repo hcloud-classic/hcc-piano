@@ -14,8 +14,8 @@ var BillingDriver *Billing = &Billing{
 	StopTimer:   nil,
 }
 
-func reserveRegisterUpdateTimer() {
-	defer BillingDriver.UpdateBillingInfo(&[]int32{1000, 1001, 1002})
+func reserveRegisterUpdateTimer(groupIDList) {
+	defer BillingDriver.UpdateBillingInfo(groupIDList)
 	logger.Logger.Println("Register billing info update timer")
 
 	now := time.Now().Add(1 * time.Hour)
@@ -27,10 +27,11 @@ func reserveRegisterUpdateTimer() {
 
 func Init() *errors.HccError {
 
+	groupIDList := []int32{1000, 1001, 1002}
 	logger.Logger.Println("Update billing info in boot up time")
-	BillingDriver.UpdateBillingInfo(&[]int32{1000, 1001, 1002})
+	BillingDriver.UpdateBillingInfo(&groupIDList)
 
-	go reserveRegisterUpdateTimer()
+	go reserveRegisterUpdateTimer(&groupIDList)
 
 	return nil
 }
