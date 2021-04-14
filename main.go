@@ -2,39 +2,51 @@ package main
 
 import (
 	"fmt"
-	"hcc/piano/action/grpc/server"
-	"hcc/piano/driver/influxdb"
-	"hcc/piano/lib/config"
-	"hcc/piano/lib/errors"
-	"hcc/piano/lib/logger"
 	"os"
 	"os/signal"
-	"strconv"
 	"syscall"
+
+	"hcc/piano/action/grpc/client"
+	"hcc/piano/action/grpc/server"
+	"hcc/piano/driver/billing"
+	"hcc/piano/driver/influxdb"
+
+	"hcc/piano/lib/config"
+	"hcc/piano/lib/logger"
+	"hcc/piano/lib/mysql"
 )
 
 func init() {
 	err := logger.Init()
 	if err != nil {
-		errors.SetErrLogger(logger.Logger)
-		errors.NewHccError(errors.PianoInternalInitFail, "logger.Init(): "+err.Error()).Fatal()
+		err.Fatal()
 	}
-	errors.SetErrLogger(logger.Logger)
 
-	config.Init()
+	config.Parser()
 
 	err = influxdb.Init()
 	if err != nil {
-		errors.NewHccError(errors.PianoInternalInitFail, "influxdb.Init(): "+err.Error()).Fatal()
+		err.Fatal()
 	}
 
-	logger.Logger.Println("Connected to InfluxDB (" + config.Influxdb.Address + ":" +
-		strconv.FormatInt(config.Influxdb.Port, 10) + ")")
+	err = mysql.Init()
+	if err != nil {
+		err.Fatal()
+	}
 
+	client.InitGRPCClient()
+
+	err = billing.Init()
+	if err != nil {
+		err.Fatal()
+	}
 }
 
 func end() {
 	logger.End()
+	mysql.End()
+	client.CleanGRPCClient()
+	server.CleanGRPCServer()
 }
 
 func main() {
@@ -48,5 +60,5 @@ func main() {
 		os.Exit(0)
 	}()
 
-	server.Init()
+	server.InitGRPCServer()
 }

@@ -4,20 +4,20 @@ import (
 	"encoding/json"
 
 	"hcc/piano/action/grpc/errconv"
-	"hcc/piano/action/grpc/pb/rpcpiano"
-	"hcc/piano/lib/errors"
 	"hcc/piano/model"
+
+	"innogrid.com/hcloud-classic/hcc_errors"
+	"innogrid.com/hcloud-classic/pb"
 )
 
-// GetInfluxData - cgs
-func GetInfluxData(in *rpcpiano.ReqMetricInfo) *rpcpiano.ResMonitoringData {
-	var resMonitoringData rpcpiano.ResMonitoringData
-	var monitoringData rpcpiano.MonitoringData
+func GetInfluxData(in *pb.ReqMetricInfo) *pb.ResMonitoringData {
+	var resMonitoringData pb.ResMonitoringData
+	var monitoringData pb.MonitoringData
 	var metricInfo model.MetricInfo
 
 	if in.GetMetricInfo() == nil {
-		errStack := errors.ReturnHccError(errors.PianoGrpcArgumentError, "metricInfo is nil")
-		resMonitoringData.HccErrorStack = errconv.HccStackToGrpc(&errStack)
+		errStack := hcc_errors.NewHccErrorStack(hcc_errors.NewHccError(hcc_errors.PianoGrpcArgumentError, "metricInfo is nil"))
+		resMonitoringData.HccErrorStack = errconv.HccStackToGrpc(errStack)
 
 		resMonitoringData.MonitoringData = &monitoringData
 
@@ -33,8 +33,8 @@ func GetInfluxData(in *rpcpiano.ReqMetricInfo) *rpcpiano.ResMonitoringData {
 	}
 	resData, err := Influx.ReadMetric(metricInfo)
 	if err != nil {
-		errStack := errors.ReturnHccError(errors.PianoInfluxDBReadMetricError, err.Error())
-		resMonitoringData.HccErrorStack = errconv.HccStackToGrpc(&errStack)
+		errStack := hcc_errors.NewHccErrorStack(hcc_errors.NewHccError(hcc_errors.PianoInfluxDBReadMetricError, err.Error()))
+		resMonitoringData.HccErrorStack = errconv.HccStackToGrpc(errStack)
 
 		monitoringData.Uuid = ""
 		resMonitoringData.MonitoringData = &monitoringData
