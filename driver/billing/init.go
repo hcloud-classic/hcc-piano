@@ -14,7 +14,7 @@ var BillingDriver *Billing = &Billing{
 	StopTimer:   nil,
 }
 
-func reserveRegisterUpdateTimer(groupIDList) {
+func reserveRegisterUpdateTimer(groupIDList *[]int32) {
 	defer BillingDriver.UpdateBillingInfo(groupIDList)
 	logger.Logger.Println("Register billing info update timer")
 
