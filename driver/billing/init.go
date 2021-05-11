@@ -4,8 +4,6 @@ import (
 	"time"
 
 	"hcc/piano/lib/logger"
-
-	errors "innogrid.com/hcloud-classic/hcc_errors"
 )
 
 var DriverBilling = &Billing{
@@ -25,13 +23,11 @@ func reserveRegisterUpdateTimer() {
 	DriverBilling.RunUpdateTimer()
 }
 
-func Init() *errors.HccError {
+func Init() {
 	logger.Logger.Println("Update billing info in boot up time")
 	DriverBilling.UpdateBillingInfo()
 
 	go reserveRegisterUpdateTimer()
-
-	return nil
 }
 
 func End() {

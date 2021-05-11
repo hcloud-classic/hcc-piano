@@ -43,10 +43,7 @@ func init() {
 		hcc_errors.NewHccError(hcc_errors.PianoInternalInitFail, "client.Init(): "+err.Error()).Fatal()
 	}
 
-	err = billing.Init()
-	if err != nil {
-		hcc_errors.NewHccError(hcc_errors.PianoInternalInitFail, "billing.Init(): "+err.Error()).Fatal()
-	}
+	billing.Init()
 }
 
 func end() {
