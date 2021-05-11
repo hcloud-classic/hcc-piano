@@ -132,67 +132,75 @@ func (bill *Billing) UpdateBillingInfo() *hcc_errors.HccErrorStack {
 	return nil
 }
 
-func (bill *Billing) readNetworkBillingInfo(groupID int, date, billType string) (*model.NetworkBill, *hcc_errors.HccError) {
-	var billInfo model.NetworkBill
+func (bill *Billing) readNetworkBillingInfo(groupID int, date, billType string) (*[]model.NetworkBill, *hcc_errors.HccError) {
+	var billList []model.NetworkBill
 
 	res, err := dao.GetBillInfo(groupID, date, billType, "network")
 	if err == nil {
 		for res.Next() {
+			var billInfo model.NetworkBill
 			_ = res.Scan(&billInfo.GroupID,
 				&billInfo.Date,
 				&billInfo.SubnetCharge,
 				&billInfo.AdaptiveIPCharge)
+			billList = append(billList, billInfo)
 		}
 	}
-	return &billInfo, err
+	return &billList, err
 }
 
-func (bill *Billing) readNodeBillingInfo(groupID int, date, billType string) (*model.NodeBill, *hcc_errors.HccError) {
-	var billInfo model.NodeBill
+func (bill *Billing) readNodeBillingInfo(groupID int, date, billType string) (*[]model.NodeBill, *hcc_errors.HccError) {
+	var billList []model.NodeBill
 
 	res, err := dao.GetBillInfo(groupID, date, billType, "node")
 	if err == nil {
 		for res.Next() {
+			var billInfo model.NodeBill
 			_ = res.Scan(&billInfo.GroupID,
 				&billInfo.Date,
 				&billInfo.NodeUUID,
 				&billInfo.ChargeCPU,
 				&billInfo.ChargeMEM,
 				&billInfo.ChargeNIC)
+			billList = append(billList, billInfo)
 		}
 	}
-	return &billInfo, err
+	return &billList, err
 }
 
-func (bill *Billing) readServerBillingInfo(groupID int, date, billType string) (*model.ServerBill, *hcc_errors.HccError) {
-	var billInfo model.ServerBill
+func (bill *Billing) readServerBillingInfo(groupID int, date, billType string) (*[]model.ServerBill, *hcc_errors.HccError) {
+	var billList []model.ServerBill
 
 	res, err := dao.GetBillInfo(groupID, date, billType, "server")
 	if err == nil {
 		for res.Next() {
+			var billInfo model.ServerBill
 			_ = res.Scan(&billInfo.GroupID,
 				&billInfo.Date,
 				&billInfo.ServerUUID,
 				&billInfo.NetworkTraffic,
 				&billInfo.TrafficChargePerKB)
+			billList = append(billList, billInfo)
 		}
 	}
-	return &billInfo, err
+	return &billList, err
 }
 
-func (bill *Billing) readVolumeBillingInfo(groupID int, date, billType string) (*model.VolumeBill, *hcc_errors.HccError) {
-	var billInfo model.VolumeBill
+func (bill *Billing) readVolumeBillingInfo(groupID int, date, billType string) (*[]model.VolumeBill, *hcc_errors.HccError) {
+	var billList []model.VolumeBill
 
 	res, err := dao.GetBillInfo(groupID, date, billType, "volume")
 	if err == nil {
 		for res.Next() {
+			var billInfo model.VolumeBill
 			_ = res.Scan(&billInfo.GroupID,
 				&billInfo.Date,
 				&billInfo.HDDCharge,
 				&billInfo.SSDCharge)
+			billList = append(billList, billInfo)
 		}
 	}
-	return &billInfo, err
+	return &billList, err
 }
 
 func (bill *Billing) ReadBillingData(groupID *[]int32, dateStart, dateEnd, billType string, row, page int) (*[][]model.Bill, *hcc_errors.HccErrorStack) {
@@ -244,9 +252,5 @@ func (bill *Billing) ReadBillingDetail(groupID int32, date, billType string) (*m
 		_ = errStack.Push(err)
 	}
 
-	logger.Logger.Println(*billingDetail.DetailNode)
-	logger.Logger.Println(*billingDetail.DetailServer)
-	logger.Logger.Println(*billingDetail.DetailNetwork)
-	logger.Logger.Println(*billingDetail.DetailVolume)
 	return &billingDetail, errStack
 }
