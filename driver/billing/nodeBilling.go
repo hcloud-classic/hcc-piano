@@ -56,12 +56,12 @@ func getNodeBillingInfo(groupList []*pb.Group) (*[]model.NodeBill, error) {
 			}
 
 			billList = append(billList, model.NodeBill{
-				GroupID:      int(group.Id),
-				Date:         strconv.Itoa(now.Year()%100*10000 + int(now.Month())*100 + now.Day()),
-				NodeUUID:     node.UUID,
-				ChargeCPU:    resGetCharge.Charge.ChargeCPUPerCore * int64(node.CPUCores),
-				ChargeMEM:    resGetCharge.Charge.ChargeMemoryPerGB * int64(node.Memory),
-				ChargeNIC:    chargeNIC,
+				GroupID:   int(group.Id),
+				Date:      strconv.Itoa(now.Year()%100*10000 + int(now.Month())*100 + now.Day()),
+				NodeUUID:  node.UUID,
+				ChargeCPU: resGetCharge.Charge.ChargeCPUPerCore * int64(node.CPUCores),
+				ChargeMEM: resGetCharge.Charge.ChargeMemoryPerGB * int64(node.Memory),
+				ChargeNIC: chargeNIC,
 			})
 		}
 	}

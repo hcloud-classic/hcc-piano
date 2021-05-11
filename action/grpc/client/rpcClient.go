@@ -6,11 +6,11 @@ import (
 
 // RPCClient : Struct type of gRPC clients
 type RPCClient struct {
-	flute  pb.FluteClient
-	harp   pb.HarpClient
-	violin pb.ViolinClient
-	cello  pb.CelloClient
-	piccolo  pb.PiccoloClient
+	flute   pb.FluteClient
+	harp    pb.HarpClient
+	violin  pb.ViolinClient
+	cello   pb.CelloClient
+	piccolo pb.PiccoloClient
 }
 
 // RC : Exported variable pointed to RPCClient
