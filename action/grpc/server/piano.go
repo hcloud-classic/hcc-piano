@@ -44,7 +44,7 @@ func (s *pianoServer) GetBillingData(ctx context.Context, in *pb.ReqBillingData)
 		resBillingData.BillingType = in.BillingType
 		resBillingData.GroupID = in.GroupID
 
-		data, errStack := billing.BillingDriver.ReadBillingData(
+		data, errStack := billing.DriverBilling.ReadBillingData(
 			&(in.GroupID), strconv.Itoa(int(in.DateStart)), strconv.Itoa(int(in.DateEnd)),
 			in.BillingType, int(in.Row), int(in.Page))
 		resBillingData.Result, _ = json.Marshal(*data)
@@ -85,7 +85,7 @@ func (s *pianoServer) GetBillingDetail(ctx context.Context, in *pb.ReqBillingDat
 			resBillingDetail.BillingType = in.BillingType
 			resBillingDetail.GroupID = in.GroupID
 
-			data, errStack := billing.BillingDriver.ReadBillingDetail(in.GroupID[0], strconv.Itoa(int(in.DateStart)), in.BillingType)
+			data, errStack := billing.DriverBilling.ReadBillingDetail(in.GroupID[0], strconv.Itoa(int(in.DateStart)), in.BillingType)
 			resBillingDetail.Result, _ = json.Marshal(*data)
 			resBillingDetail.HccErrorStack = errconv.HccStackToGrpc(errStack)
 		default:

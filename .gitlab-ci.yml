@@ -51,5 +51,5 @@ deploy:
     - sudo chmod 755 /bin/piano
     - sudo /usr/sbin/service piano start
     - echo "Finished"
-  only:
-  - master
+#  only:
+#  - master

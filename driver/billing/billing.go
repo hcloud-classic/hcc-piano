@@ -3,7 +3,7 @@ package billing
 import (
 	"time"
 
-	errors "innogrid.com/hcloud-classic/hcc_errors"
+	"innogrid.com/hcloud-classic/hcc_errors"
 
 	"hcc/piano/action/grpc/client"
 	"hcc/piano/dao"
@@ -45,160 +45,170 @@ func (bill *Billing) RunUpdateTimer() {
 			case <-done:
 				return
 			case <-bill.updateTimer.C:
-				logger.Logger.Println("UPDATE Billing information", []int32{1000, 1001, 1002})
-				BillingDriver.UpdateBillingInfo(&[]int32{1000, 1001, 1002})
+				logger.Logger.Println("RunUpdateTimer(): Updating billing information")
+				DriverBilling.UpdateBillingInfo()
 				break
 			}
 		}
 	}()
 }
 
-func (bill *Billing) UpdateBillingInfo(groupID *[]int32) *errors.HccErrorStack {
-	var err *errors.HccError
-	errStack := errors.NewHccErrorStack()
+func (bill *Billing) UpdateBillingInfo() *hcc_errors.HccErrorStack {
+	var hccErr *hcc_errors.HccError
+	errStack := hcc_errors.NewHccErrorStack()
 
-	nodeBillList, es := client.RC.GetNodeBillingInfo(groupID)
-	if es != nil {
-		errStack.Merge(es)
-	}
-
-	serverBillList, es := client.RC.GetServerBillingInfo(groupID)
-	if es != nil {
-		errStack.Merge(es)
-	}
-
-	networkBillList, es := client.RC.GetNetworkBillingInfo(groupID)
-	if es != nil {
-		errStack.Merge(es)
-	}
-
-	volumeBillList, es := client.RC.GetVolumeBillingInfo(groupID)
-	if es != nil {
-		errStack.Merge(es)
-	}
-
-	err = dao.InsertNodeBillingInfo(nodeBillList)
+	resGetGroupList, err := client.RC.GetGroupList()
 	if err != nil {
-		errStack.Push(err)
+		_ = errStack.Push(hcc_errors.NewHccError(hcc_errors.PianoInternalOperationFail,
+			"UpdateBillingInfo(): GetGroupList(): "+err.Error()))
+		return errStack
 	}
-	err = dao.InsertServerBillingInfo(serverBillList)
+
+	nodeBillList, err := getNodeBillingInfo(resGetGroupList.Group)
 	if err != nil {
-		errStack.Push(err)
+		_ = errStack.Push(hcc_errors.NewHccError(hcc_errors.PianoInternalOperationFail,
+			"UpdateBillingInfo(): getNodeBillingInfo(): "+err.Error()))
 	}
-	err = dao.InsertNetworkBillingInfo(networkBillList)
-	if err != nil {
-		errStack.Push(err)
+
+	// TODO: Need to implement getServerBillingInfo()
+	//serverBillList, err := getServerBillingInfo(resGetGroupList.Group)
+	//if err != nil {
+	//	_ = errStack.Push(hcc_errors.NewHccError(hcc_errors.PianoInternalOperationFail,
+	//		"UpdateBillingInfo(): getServerBillingInfo(): "+err.Error()))
+	//}
+
+	// TODO: Need to implement getNetworkBillingInfo()
+	//networkBillList, err := getNetworkBillingInfo(resGetGroupList.Group)
+	//if err != nil {
+	//	_ = errStack.Push(hcc_errors.NewHccError(hcc_errors.PianoInternalOperationFail,
+	//		"UpdateBillingInfo(): getNetworkBillingInfo(): "+err.Error()))
+	//}
+
+	// TODO: Need to implement getVolumeBillingInfo()
+	//volumeBillList, err := getVolumeBillingInfo(resGetGroupList.Group)
+	//if err != nil {
+	//	_ = errStack.Push(hcc_errors.NewHccError(hcc_errors.PianoInternalOperationFail,
+	//		"UpdateBillingInfo(): getVolumeBillingInfo(): "+err.Error()))
+	//}
+
+	hccErr = dao.InsertNodeBillingInfo(nodeBillList)
+	if hccErr != nil {
+		_ = errStack.Push(hccErr)
 	}
-	err = dao.InsertVolumeBillingInfo(volumeBillList)
-	if err != nil {
-		errStack.Push(err)
-	}
+
+	// TODO: Need to implement getServerBillingInfo()
+	//hccErr = dao.InsertServerBillingInfo(serverBillList)
+	//if hccErr != nil {
+	//	_ = errStack.Push(hccErr)
+	//}
+
+	// TODO: Need to implement getNetworkBillingInfo()
+	//hccErr = dao.InsertNetworkBillingInfo(networkBillList)
+	//if hccErr != nil {
+	//	_ = errStack.Push(hccErr)
+	//}
+
+	// TODO: Need to implement getVolumeBillingInfo()
+	//hccErr = dao.InsertVolumeBillingInfo(volumeBillList)
+	//if hccErr != nil {
+	//	_ = errStack.Push(hccErr)
+	//}
 
 	if bill.lastUpdate.Day() != time.Now().Day() {
 		logger.Logger.Println("Update Daily Billing Info")
-		err = dao.InsertDailyInfo()
-		if err != nil {
-			errStack.Push(err)
+		hccErr = dao.InsertDailyInfo()
+		if hccErr != nil {
+			_ = errStack.Push(hccErr)
 		} else {
 			bill.lastUpdate = time.Now()
 		}
 	}
 
 	if errStack.Len() > 0 {
-		errStack.Dump()
+		_ = errStack.Dump()
 		return errStack
 	}
 
 	return nil
 }
 
-func (bill *Billing) readNetworkBillingInfo(groupID int, date, billType string) (*model.NetworkBill, *errors.HccError) {
+func (bill *Billing) readNetworkBillingInfo(groupID int, date, billType string) (*model.NetworkBill, *hcc_errors.HccError) {
 	var billInfo model.NetworkBill
 
 	res, err := dao.GetBillInfo(groupID, date, billType, "network")
 	if err == nil {
 		for res.Next() {
-			res.Scan(&billInfo.GroupID,
+			_ = res.Scan(&billInfo.GroupID,
 				&billInfo.Date,
-				&billInfo.SubnetCount,
-				&billInfo.AIPCount,
-				&billInfo.SubnetChargePerCnt,
-				&billInfo.AIPChargePerCnt,
-				&billInfo.DiscountRate)
+				&billInfo.SubnetCharge,
+				&billInfo.AdaptiveIPCharge)
 		}
 	}
 	return &billInfo, err
 }
 
-func (bill *Billing) readNodeBillingInfo(groupID int, date, billType string) (*model.NodeBill, *errors.HccError) {
+func (bill *Billing) readNodeBillingInfo(groupID int, date, billType string) (*model.NodeBill, *hcc_errors.HccError) {
 	var billInfo model.NodeBill
 
 	res, err := dao.GetBillInfo(groupID, date, billType, "node")
 	if err == nil {
 		for res.Next() {
-			res.Scan(&billInfo.GroupID,
+			_ = res.Scan(&billInfo.GroupID,
 				&billInfo.Date,
 				&billInfo.NodeUUID,
-				&billInfo.DefChargeCPU,
-				&billInfo.DefChargeMEM,
-				&billInfo.DefChargeNIC,
-				&billInfo.DiscountRate)
+				&billInfo.ChargeCPU,
+				&billInfo.ChargeMEM,
+				&billInfo.ChargeNIC)
 		}
 	}
 	return &billInfo, err
 }
 
-func (bill *Billing) readServerBillingInfo(groupID int, date, billType string) (*model.ServerBill, *errors.HccError) {
+func (bill *Billing) readServerBillingInfo(groupID int, date, billType string) (*model.ServerBill, *hcc_errors.HccError) {
 	var billInfo model.ServerBill
 
 	res, err := dao.GetBillInfo(groupID, date, billType, "server")
 	if err == nil {
 		for res.Next() {
-			res.Scan(&billInfo.GroupID,
+			_ = res.Scan(&billInfo.GroupID,
 				&billInfo.Date,
 				&billInfo.ServerUUID,
 				&billInfo.NetworkTraffic,
-				&billInfo.TrafficChargePerKB,
-				&billInfo.DiscountRate)
+				&billInfo.TrafficChargePerKB)
 		}
 	}
 	return &billInfo, err
 }
 
-func (bill *Billing) readVolumeBillingInfo(groupID int, date, billType string) (*model.VolumeBill, *errors.HccError) {
+func (bill *Billing) readVolumeBillingInfo(groupID int, date, billType string) (*model.VolumeBill, *hcc_errors.HccError) {
 	var billInfo model.VolumeBill
 
 	res, err := dao.GetBillInfo(groupID, date, billType, "volume")
 	if err == nil {
 		for res.Next() {
-			res.Scan(&billInfo.GroupID,
+			_ = res.Scan(&billInfo.GroupID,
 				&billInfo.Date,
-				&billInfo.HDDSize,
-				&billInfo.SSDSize,
-				&billInfo.NVMESize,
-				&billInfo.HDDChargePerGB,
-				&billInfo.SSDChargePerGB,
-				&billInfo.NVMEChargePerGB,
-				&billInfo.DiscountRate)
+				&billInfo.HDDCharge,
+				&billInfo.SSDCharge)
 		}
 	}
 	return &billInfo, err
 }
 
-func (bill *Billing) ReadBillingData(groupID *[]int32, dateStart, dateEnd, billType string, row, page int) (*[][]model.Bill, *errors.HccErrorStack) {
+func (bill *Billing) ReadBillingData(groupID *[]int32, dateStart, dateEnd, billType string, row, page int) (*[][]model.Bill, *hcc_errors.HccErrorStack) {
 	var billList [][]model.Bill
-	errStack := errors.NewHccErrorStack()
+	errStack := hcc_errors.NewHccErrorStack()
 
 	for _, gid := range *groupID {
 		res, err := dao.GetBill(int(gid), dateStart, dateEnd, billType, row, page)
 		if err != nil {
-			errStack.Push(err)
+			_ = errStack.Push(err)
 			continue
 		}
 		var list []model.Bill
 		for res.Next() {
 			bill := model.Bill{}
-			res.Scan(&bill.BillID,
+			_ = res.Scan(&bill.BillID,
 				&bill.ChargeNode,
 				&bill.ChargeServer,
 				&bill.ChargeNetwork,
@@ -206,32 +216,32 @@ func (bill *Billing) ReadBillingData(groupID *[]int32, dateStart, dateEnd, billT
 			list = append(list, bill)
 		}
 		billList = append(billList, list)
-		res.Close()
+		_ = res.Close()
 	}
 
 	return &billList, errStack
 }
 
-func (bill *Billing) ReadBillingDetail(groupID int32, date, billType string) (*model.BillDetail, *errors.HccErrorStack) {
+func (bill *Billing) ReadBillingDetail(groupID int32, date, billType string) (*model.BillDetail, *hcc_errors.HccErrorStack) {
 	var billingDetail model.BillDetail
-	var err *errors.HccError
-	errStack := errors.NewHccErrorStack()
+	var err *hcc_errors.HccError
+	errStack := hcc_errors.NewHccErrorStack()
 
 	billingDetail.DetailNode, err = bill.readNodeBillingInfo(int(groupID), date, billType)
 	if err != nil {
-		errStack.Push(err)
+		_ = errStack.Push(err)
 	}
 	billingDetail.DetailServer, err = bill.readServerBillingInfo(int(groupID), date, billType)
 	if err != nil {
-		errStack.Push(err)
+		_ = errStack.Push(err)
 	}
 	billingDetail.DetailNetwork, err = bill.readNetworkBillingInfo(int(groupID), date, billType)
 	if err != nil {
-		errStack.Push(err)
+		_ = errStack.Push(err)
 	}
 	billingDetail.DetailVolume, err = bill.readVolumeBillingInfo(int(groupID), date, billType)
 	if err != nil {
-		errStack.Push(err)
+		_ = errStack.Push(err)
 	}
 
 	logger.Logger.Println(*billingDetail.DetailNode)

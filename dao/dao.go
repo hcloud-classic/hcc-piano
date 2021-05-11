@@ -5,17 +5,17 @@ import (
 	"strconv"
 	"strings"
 
-	//"hcc/piano/lib/logger"
+	dbsql "database/sql"
 	"hcc/piano/lib/mysql"
 	"hcc/piano/model"
 
-	errors "innogrid.com/hcloud-classic/hcc_errors"
+	"innogrid.com/hcloud-classic/hcc_errors"
 )
 
-func sendStmt(sql string, params ...interface{}) (mysql.Result, *errors.HccError) {
+func sendStmt(sql string, params ...interface{}) (dbsql.Result, *hcc_errors.HccError) {
 	stmt, err := mysql.Db.Prepare(sql)
 	if err != nil {
-		return nil, errors.NewHccError(errors.PianoInternalOperationFail, "sql Prepare : "+err.Error())
+		return nil, hcc_errors.NewHccError(hcc_errors.PianoInternalOperationFail, "sql Prepare : "+err.Error())
 	}
 
 	defer func() {
@@ -25,139 +25,129 @@ func sendStmt(sql string, params ...interface{}) (mysql.Result, *errors.HccError
 	result, err := stmt.Exec(params...)
 
 	if err != nil {
-		return result, errors.NewHccError(errors.PianoInternalOperationFail, "stmt Exec : "+err.Error())
+		return result, hcc_errors.NewHccError(hcc_errors.PianoInternalOperationFail, "stmt Exec : "+err.Error())
 	}
 
 	return result, nil
 }
 
-func sendQuery(sql string) (*mysql.Rows, *errors.HccError) {
+func sendQuery(sql string) (*dbsql.Rows, *hcc_errors.HccError) {
 	result, err := mysql.Db.Query(sql)
 	if err != nil {
-		return nil, errors.NewHccError(errors.PianoInternalOperationFail, "sql Query : "+err.Error())
+		return nil, hcc_errors.NewHccError(hcc_errors.PianoInternalOperationFail, "sql Query : "+err.Error())
 	}
 
 	return result, nil
 }
 
-func InsertNetworkBillingInfo(infoList *[]model.NetworkBill) *errors.HccError {
-	sql := "INSERT INTO `piano`.`network_billing_info` (`group_id`, `date`, `subnet_count`, `adaptiveip_count`, `subnet_charge_per_cnt`, `adaptiveip_charge_per_cnt`, `discount_rate`) VALUES "
+func InsertNetworkBillingInfo(infoList *[]model.NetworkBill) *hcc_errors.HccError {
+	sql := "INSERT INTO `piano`.`network_billing_info` (`group_id`, `date`, `subnet_charge`, `adaptive_ip_charge`) VALUES "
 
 	for _, info := range *infoList {
-		sql += fmt.Sprintf("(%d, DATE(NOW()), %d, %d, %f, %f, %f),",
+		sql += fmt.Sprintf("(%d, DATE(NOW()), %d, %d),",
 			info.GroupID,
-			info.SubnetCount,
-			info.AIPCount,
-			info.SubnetChargePerCnt,
-			info.AIPChargePerCnt,
-			info.DiscountRate)
+			info.SubnetCharge,
+			info.AdaptiveIPCharge)
 	}
 
 	sql = strings.TrimSuffix(sql, ",") + " AS `new_info` "
 	sql += "ON DUPLICATE KEY UPDATE " +
-		"`subnet_count` = `new_info`.`subnet_count`, " +
-		"`adaptiveip_count` = `new_info`.`adaptiveip_count`, " +
-		"`subnet_charge_per_cnt` = `new_info`.`subnet_charge_per_cnt`, " +
-		"`adaptiveip_charge_per_cnt` = `new_info`.`adaptiveip_charge_per_cnt`, " +
-		"`discount_rate` = `new_info`.`discount_rate`;"
+		"`subnet_charge` = `new_info`.`subnet_charge`, " +
+		"`adaptive_ip_charge` = `new_info`.`adaptive_ip_charge`;"
 
 	res, err := sendQuery(sql)
-	res.Close()
+	if res != nil {
+		_ = res.Close()
+	}
 	return err
 }
 
-func InsertNodeBillingInfo(infoList *[]model.NodeBill) *errors.HccError {
-	sql := "INSERT INTO `piano`.`node_billing_info` (`group_id`, `date`, `node_uuid`, `default_charge_cpu`, `default_charge_memory`, `default_charge_nic`, `discount_rate`) VALUES "
+func InsertNodeBillingInfo(infoList *[]model.NodeBill) *hcc_errors.HccError {
+	sql := "INSERT INTO `piano`.`node_billing_info` (`group_id`, `date`, `node_uuid`, `charge_cpu`, `charge_memory`, `charge_nic`) VALUES "
 
 	for _, info := range *infoList {
-		sql += fmt.Sprintf("(%d, DATE(NOW()), %s, %f, %f, %f, %f),",
+		sql += fmt.Sprintf("(%d, DATE(NOW()), %s, %d, %d, %d),",
 			info.GroupID,
 			info.NodeUUID,
-			info.DefChargeCPU,
-			info.DefChargeMEM,
-			info.DefChargeNIC,
-			info.DiscountRate)
+			info.ChargeCPU,
+			info.ChargeMEM,
+			info.ChargeNIC)
 	}
 
 	sql = strings.TrimSuffix(sql, ",") + " AS `new_info` "
 	sql += "ON DUPLICATE KEY UPDATE " +
-		"`default_charge_cpu` = `new_info`.`default_charge_cpu`, " +
-		"`default_charge_memory` = `new_info`.`default_charge_memory`, " +
-		"`default_charge_nic` = `new_info`.`default_charge_nic`, " +
-		"`discount_rate` = `new_info`.`discount_rate`;"
+		"`charge_cpu` = `new_info`.`charge_cpu`, " +
+		"`charge_memory` = `new_info`.`charge_memory`, " +
+		"`charge_nic` = `new_info`.`charge_nic`;"
 
 	res, err := sendQuery(sql)
-	res.Close()
+	if res != nil {
+		_ = res.Close()
+	}
 
 	return err
 }
 
-func InsertServerBillingInfo(infoList *[]model.ServerBill) *errors.HccError {
-	sql := "INSERT INTO `piano`.`server_billing_info` (`group_id`, `date`, `server_uuid`, `network_traffic`, `traffic_charge_per_kb`, `discount_rate`) VALUES "
+func InsertServerBillingInfo(infoList *[]model.ServerBill) *hcc_errors.HccError {
+	sql := "INSERT INTO `piano`.`server_billing_info` (`group_id`, `date`, `server_uuid`, `network_traffic`, `traffic_charge_per_kb`) VALUES "
 
 	for _, info := range *infoList {
-		sql += fmt.Sprintf("(%d, DATE(NOW()), %s, %d, %f, %f),",
+		sql += fmt.Sprintf("(%d, DATE(NOW()), %s, %d, %f),",
 			info.GroupID,
 			info.ServerUUID,
 			info.NetworkTraffic,
-			info.TrafficChargePerKB,
-			info.DiscountRate)
+			info.TrafficChargePerKB)
 	}
 
 	sql = strings.TrimSuffix(sql, ",") + " AS `new_info` "
 	sql += "ON DUPLICATE KEY UPDATE " +
 		"`network_traffic` = `new_info`.`network_traffic`, " +
-		"`traffic_charge_per_kb` = `new_info`.`traffic_charge_per_kb`, " +
-		"`discount_rate` = `new_info`.`discount_rate`;"
+		"`traffic_charge_per_kb` = `new_info`.`traffic_charge_per_kb`;"
 
 	res, err := sendQuery(sql)
-	res.Close()
+	if res != nil {
+		_ = res.Close()
+	}
 
 	return err
 }
 
-func InsertVolumeBillingInfo(infoList *[]model.VolumeBill) *errors.HccError {
-	sql := "INSERT INTO `piano`.`volume_billing_info` (`group_id`, `date`, `hdd_size`, `ssd_size`, `nvme_size`, `hdd_charge_per_gb`, `ssd_charge_per_gb`, `nvme_charge_per_gb`, `discount_rate`) VALUES "
+func InsertVolumeBillingInfo(infoList *[]model.VolumeBill) *hcc_errors.HccError {
+	sql := "INSERT INTO `piano`.`volume_billing_info` (`group_id`, `date`, `hdd_charge`, `ssd_charge`) VALUES "
 
 	for _, info := range *infoList {
-		sql += fmt.Sprintf("(%d, DATE(NOW()), %d, %d, %d, %f, %f, %f, %f),",
+		sql += fmt.Sprintf("(%d, DATE(NOW()), %d, %d),",
 			info.GroupID,
-			info.HDDSize,
-			info.SSDSize,
-			info.NVMESize,
-			info.HDDChargePerGB,
-			info.SSDChargePerGB,
-			info.NVMEChargePerGB,
-			info.DiscountRate)
+			info.HDDCharge,
+			info.SSDCharge)
 	}
 
 	sql = strings.TrimSuffix(sql, ",") + " AS `new_info` "
 	sql += "ON DUPLICATE KEY UPDATE " +
-		"`hdd_size` = `new_info`.`hdd_size`," +
-		"`ssd_size` = `new_info`.`ssd_size`," +
-		"`nvme_size` = `new_info`.`nvme_size`," +
-		"`hdd_charge_per_gb` = `new_info`.`hdd_charge_per_gb`," +
-		"`ssd_charge_per_gb` = `new_info`.`ssd_charge_per_gb`," +
-		"`nvme_charge_per_gb` = `new_info`.`nvme_charge_per_gb`," +
-		"`discount_rate` = `new_info`.`discount_rate`;"
+		"`hdd_charge` = `new_info`.`hdd_charge`," +
+		"`ssd_charge` = `new_info`.`ssd_charge`;"
 
 	res, err := sendQuery(sql)
-	res.Close()
+	if res != nil {
+		_ = res.Close()
+	}
 
 	return err
 }
 
-func InsertDailyInfo() *errors.HccError {
+func InsertDailyInfo() *hcc_errors.HccError {
 
-	sql := "INSERT INTO `piano`.`daily_info` (`date`, `group_id`, `charge_node`, `charge_server`, `charge_network`, `charge_volume`) SELECT	`current_info`.`date`, `current_info`.`group_id`, `current_info`.`charge_node`,	`current_info`.`charge_network`, `current_info`.`charge_server`, `current_info`.`charge_volume` FROM (SELECT `node_charge`.`date` AS `date`, `node_charge`.`group_id` AS `group_id`, `charge_node`, `charge_network`, `charge_server`, `charge_volume` FROM (SELECT `node`.`group_id`, `node`.`date`, SUM((`node`.`default_charge_cpu` + `node`.`default_charge_memory` + `default_charge_nic`) * (1 - `node`.`discount_rate`)) AS `charge_node` FROM `piano`.`node_billing_info` AS `node` WHERE `node`.`date` = DATE(NOW()) GROUP BY `node`.`group_id`, `node`.`date`) AS `node_charge` LEFT JOIN (SELECT `net`.`group_id`, `net`.`date`, (`net`.`subnet_count` * `net`.`subnet_charge_per_cnt` * (1-`net`.`discount_rate`) + `net`.`adaptiveip_count` * `net`.`adaptiveip_charge_per_cnt` * (1-`net`.`discount_rate`)) AS `charge_network` FROM `piano`.`network_billing_info` AS `net` WHERE `net`.`date` = DATE(NOW())) AS `net_charge` ON `net_charge`.`date` = `node_charge`.`date` AND `net_charge`.`group_id` = `node_charge`.`group_id` LEFT JOIN (SELECT `server`.`group_id`, `server`.`date`, SUM((`server`.`network_traffic` * `server`.`traffic_charge_per_kb`) * (1 - `server`.`discount_rate`)) AS `charge_server` FROM `piano`.`server_billing_info` AS `server` WHERE `server`.`date` = DATE(NOW()) GROUP BY `server`.`group_id`, `server`.`date`) AS `server_charge` ON `server_charge`.`date` = `node_charge`.`date` AND `server_charge`.`group_id` = `node_charge`.`group_id` LEFT JOIN (SELECT `volume`.`group_id`, `volume`.`date`, ((`volume`.`hdd_size` * `volume`.`hdd_charge_per_gb`) + (`volume`.`ssd_size` * `volume`.`ssd_charge_per_gb`) + (`volume`.`nvme_size` * `volume`.`nvme_charge_per_gb`)) * (1 - `volume`.`discount_rate`) AS `charge_volume` FROM `piano`.`volume_billing_info` AS `volume` WHERE `volume`.`date` = DATE(NOW())) AS `volume_charge` ON `volume_charge`.`date` = `node_charge`.`date` AND `volume_charge`.`group_id` = `node_charge`.`group_id`) AS `current_info` ON DUPLICATE KEY UPDATE `daily_info`.`charge_node` = `current_info`.`charge_node`, `daily_info`.`charge_server` = `current_info`.`charge_server`, `daily_info`.`charge_network` = `current_info`.`charge_network`, `daily_info`.`charge_volume` = `current_info`.`charge_volume`;"
+	sql := "INSERT INTO `piano`.`daily_info` (`date`, `group_id`, `charge_node`, `charge_server`, `charge_network`, `charge_volume`) SELECT	`current_info`.`date`, `current_info`.`group_id`, `current_info`.`charge_node`,	`current_info`.`charge_network`, `current_info`.`charge_server`, `current_info`.`charge_volume` FROM (SELECT `node_charge`.`date` AS `date`, `node_charge`.`group_id` AS `group_id`, `charge_node`, `charge_network`, `charge_server`, `charge_volume` FROM (SELECT `node`.`group_id`, `node`.`date`, (`node`.`charge_cpu` + `node`.`charge_memory` + `node`.`charge_nic`) AS `charge_node` FROM `piano`.`node_billing_info` AS `node` WHERE `node`.`date` = DATE(NOW()) GROUP BY `node`.`group_id`, `node`.`date`) AS `node_charge` LEFT JOIN (SELECT `net`.`group_id`, `net`.`date`, (`net`.`subnet_charge` + `net`.`adaptive_ip_charge`) AS `charge_network` FROM `piano`.`network_billing_info` AS `net` WHERE `net`.`date` = DATE(NOW())) AS `net_charge` ON `net_charge`.`date` = `node_charge`.`date` AND `net_charge`.`group_id` = `node_charge`.`group_id` LEFT JOIN (SELECT `server`.`group_id`, `server`.`date`, SUM(`server`.`network_traffic` * `server`.`traffic_charge_per_kb`) AS `charge_server` FROM `piano`.`server_billing_info` AS `server` WHERE `server`.`date` = DATE(NOW()) GROUP BY `server`.`group_id`, `server`.`date`) AS `server_charge` ON `server_charge`.`date` = `node_charge`.`date` AND `server_charge`.`group_id` = `node_charge`.`group_id` LEFT JOIN (SELECT `volume`.`group_id`, `volume`.`date`, (``volume`.`hdd_charge` + `volume`.`ssd_charge`) AS `charge_volume` FROM `piano`.`volume_billing_info` AS `volume` WHERE `volume`.`date` = DATE(NOW())) AS `volume_charge` ON `volume_charge`.`date` = `node_charge`.`date` AND `volume_charge`.`group_id` = `node_charge`.`group_id`) AS `current_info` ON DUPLICATE KEY UPDATE `daily_info`.`charge_node` = `current_info`.`charge_node`, `daily_info`.`charge_server` = `current_info`.`charge_server`, `daily_info`.`charge_network` = `current_info`.`charge_network`, `daily_info`.`charge_volume` = `current_info`.`charge_volume`;"
 
 	res, err := sendQuery(sql)
-	res.Close()
+	if res != nil {
+		_ = res.Close()
+	}
 
 	return err
 }
 
-func GetBill(groupID int, start, end, billType string, row, page int) (*mysql.Rows, *errors.HccError) {
+func GetBill(groupID int, start, end, billType string, row, page int) (*dbsql.Rows, *hcc_errors.HccError) {
 	billIdStart := strconv.Itoa(groupID) + start
 	billIdEnd := strconv.Itoa(groupID) + end
 	billType = strings.ToLower(billType)
@@ -172,7 +162,7 @@ func GetBill(groupID int, start, end, billType string, row, page int) (*mysql.Ro
 		sql = "SELECT * FROM `piano`.`" + billType + "_bill` WHERE `bill_id` BETWEEN " + billIdStart + " AND " +
 			billIdEnd + " LIMIT " + strconv.Itoa(row) + " OFFSET " + strconv.Itoa(row*page) + ";"
 	default:
-		return nil, errors.NewHccError(errors.PianoSQLOperationFail, "DAO(GetBill) -> Unsupport billing type")
+		return nil, hcc_errors.NewHccError(hcc_errors.PianoSQLOperationFail, "DAO(GetBill) -> Unsupport billing type")
 	}
 
 	res, err := sendQuery(sql)
@@ -180,7 +170,7 @@ func GetBill(groupID int, start, end, billType string, row, page int) (*mysql.Ro
 	return res, err
 }
 
-func GetBillInfo(groupID int, date, billType, category string) (*mysql.Rows, *errors.HccError) {
+func GetBillInfo(groupID int, date, billType, category string) (*dbsql.Rows, *hcc_errors.HccError) {
 	billType = strings.ToLower(billType)
 	category = strings.ToLower(category)
 	dateStart := date
@@ -198,7 +188,7 @@ func GetBillInfo(groupID int, date, billType, category string) (*mysql.Rows, *er
 	case "yearly":
 		dateEnd += 10000
 	default:
-		return nil, errors.NewHccError(errors.PianoSQLOperationFail, "DAO(GetBillInfo) -> Unsupport billing type")
+		return nil, hcc_errors.NewHccError(hcc_errors.PianoSQLOperationFail, "DAO(GetBillInfo) -> Unsupport billing type")
 	}
 
 	switch category {
@@ -211,12 +201,15 @@ func GetBillInfo(groupID int, date, billType, category string) (*mysql.Rows, *er
 	case "volume":
 		break
 	default:
-		return nil, errors.NewHccError(errors.PianoSQLOperationFail, "DAO(GetBillInfo) -> Unsupport category")
+		return nil, hcc_errors.NewHccError(hcc_errors.PianoSQLOperationFail, "DAO(GetBillInfo) -> Unsupport category")
 	}
 
 	sql := "SELECT * FROM `piano`.`" + category + "_billing_info` WHERE `group_id`=" + strconv.Itoa(groupID) + " AND `date` BETWEEN DATE(" + dateStart + ") AND DATE(" + strconv.Itoa(dateEnd) + ");"
 
 	res, err := sendQuery(sql)
+	if res != nil {
+		_ = res.Close()
+	}
 
 	return res, err
 }
