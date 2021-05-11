@@ -36,8 +36,8 @@ type ServerBill struct {
 type VolumeBill struct {
 	GroupID         int     `json:"group_id"`
 	Date            string  `json:"date"`
-	HDDCharge  float32 `json:"hdd_charge"`
-	SSDCharge  float32 `json:"ssd_charge"`
+	HDDCharge  int64 `json:"hdd_charge"`
+	SSDCharge  int64 `json:"ssd_charge"`
 }
 
 type BillDetail struct {
