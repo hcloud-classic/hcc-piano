@@ -14,39 +14,43 @@ import (
 	"hcc/piano/lib/config"
 	"hcc/piano/lib/logger"
 	"hcc/piano/lib/mysql"
+
+	"innogrid.com/hcloud-classic/hcc_errors"
 )
 
 func init() {
 	err := logger.Init()
 	if err != nil {
-		err.Fatal()
+		hcc_errors.SetErrLogger(logger.Logger)
+		hcc_errors.NewHccError(hcc_errors.PianoInternalInitFail, "logger.Init(): "+err.Error()).Fatal()
 	}
+	hcc_errors.SetErrLogger(logger.Logger)
 
-	config.Parser()
-
-	err = influxdb.Init()
-	if err != nil {
-		err.Fatal()
-	}
+	config.Init()
 
 	err = mysql.Init()
 	if err != nil {
-		err.Fatal()
+		hcc_errors.NewHccError(hcc_errors.PianoInternalInitFail, "mysql.Init(): "+err.Error()).Fatal()
 	}
 
-	client.InitGRPCClient()
-
-	err = billing.Init()
+	err = influxdb.Init()
 	if err != nil {
-		err.Fatal()
+		hcc_errors.NewHccError(hcc_errors.PianoInternalInitFail, "influxdb.Init(): "+err.Error()).Fatal()
 	}
+
+	err = client.Init()
+	if err != nil {
+		hcc_errors.NewHccError(hcc_errors.PianoInternalInitFail, "client.Init(): "+err.Error()).Fatal()
+	}
+
+	billing.Init()
 }
 
 func end() {
+	billing.End()
 	logger.End()
+	client.End()
 	mysql.End()
-	client.CleanGRPCClient()
-	server.CleanGRPCServer()
 }
 
 func main() {
@@ -60,5 +64,5 @@ func main() {
 		os.Exit(0)
 	}()
 
-	server.InitGRPCServer()
+	server.Init()
 }

@@ -1,63 +1,43 @@
 package model
 
 type Bill struct {
-	BillID        uint64  `json:"bill_id"`
-	ChargeNode    float32 `json:"charge_node"`
-	ChargeServer  float32 `json:"charge_server"`
-	ChargeNetwork float32 `json:"charge_network"`
-	ChargeVolume  float32 `json:"charge_volume"`
-}
-
-type DiscountInfo struct {
-	DiscountID    int     `json:"disount_id"`
-	GroupID       int     `json:"group_id"`
-	Expired       bool    `json:"expired"`
-	Target        string  `json:"target"`
-	DiscountRate  float32 `json:"discount_rate"`
-	DiscountStart string  `json:"discount_start"`
-	DiscountEnd   string  `json:"discount_end"`
-	DiscountDesc  string  `json:"discount_desc"`
+	BillID        uint64 `json:"bill_id"`
+	ChargeNode    int64  `json:"charge_node"`
+	ChargeServer  int64  `json:"charge_server"`
+	ChargeNetwork int64  `json:"charge_network"`
+	ChargeVolume  int64  `json:"charge_volume"`
 }
 
 type NetworkBill struct {
-	GroupID            int     `json:"group_id"`
-	Date               string  `json:"date"`
-	SubnetCount        int     `json:"subnet_count"`
-	AIPCount           int     `json:"adaptiveip_count"`
-	SubnetChargePerCnt float32 `json:"subnet_charge_per_cnt"`
-	AIPChargePerCnt    float32 `json:"adaptiveip_charge_per_cnt"`
-	DiscountRate       float32 `json:"discount_rate"`
+	GroupID          int    `json:"group_id"`
+	Date             string `json:"date"`
+	SubnetCharge     int64  `json:"subnet_charge"`
+	AdaptiveIPCharge int64  `json:"adaptive_ip_charge"`
 }
 
 type NodeBill struct {
-	GroupID      int     `json:"group_id"`
-	Date         string  `json:"date"`
-	NodeUUID     string  `json:"node_uuid"`
-	DefChargeCPU float32 `json:"default_charge_cpu"`
-	DefChargeMEM float32 `json:"default_charge_memory"`
-	DefChargeNIC float32 `json:"default_charge_nic"`
-	DiscountRate float32 `json:"discount_rate"`
+	GroupID   int    `json:"group_id"`
+	Date      string `json:"date"`
+	NodeUUID  string `json:"node_uuid"`
+	ChargeCPU int64  `json:"charge_cpu"`
+	ChargeMEM int64  `json:"charge_memory"`
+	ChargeNIC int64  `json:"charge_nic"`
 }
 
 type ServerBill struct {
-	GroupID            int     `json:"group_id"`
-	Date               string  `json:"date"`
-	ServerUUID         string  `json:"server_uuid"`
+	GroupID    int    `json:"group_id"`
+	Date       string `json:"date"`
+	ServerUUID string `json:"server_uuid"`
+	// TODO : RunningTime
 	NetworkTraffic     uint64  `json:"network_traffic"`
 	TrafficChargePerKB float32 `json:"traffic_charge_per_KB"`
-	DiscountRate       float32 `json:"discount_rate"`
 }
 
 type VolumeBill struct {
-	GroupID         int     `json:"group_id"`
-	Date            string  `json:"date"`
-	HDDSize         uint64  `json:"hdd_size"`
-	SSDSize         uint64  `json:"ssd_size"`
-	NVMESize        uint64  `json:"nvme_size"`
-	HDDChargePerGB  float32 `json:"hdd_charge_per_GB"`
-	SSDChargePerGB  float32 `json:"ssd_charge_per_GB"`
-	NVMEChargePerGB float32 `json:"nvme_charge_per_GB"`
-	DiscountRate    float32 `json:"discount_rate"`
+	GroupID   int    `json:"group_id"`
+	Date      string `json:"date"`
+	HDDCharge int64  `json:"hdd_charge"`
+	SSDCharge int64  `json:"ssd_charge"`
 }
 
 type BillDetail struct {

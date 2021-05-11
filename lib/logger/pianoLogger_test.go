@@ -1,8 +1,9 @@
 package logger
 
 import (
-	"innogrid.com/hcloud-classic/hcc_errors"
 	"testing"
+
+	"innogrid.com/hcloud-classic/hcc_errors"
 )
 
 func Test_CreateDirIfNotExist(t *testing.T) {
@@ -19,7 +20,8 @@ func Test_Logger_Prepare(t *testing.T) {
 		hcc_errors.NewHccError(hcc_errors.PianoInternalInitFail, "logger.Init(): "+err.Error()).Fatal()
 	}
 	hcc_errors.SetErrLogger(Logger)
+
 	defer func() {
-		_ = FpLog.Close()
+		End()
 	}()
 }
