@@ -190,7 +190,6 @@ func parseGrpc() {
 }
 
 func parseInfluxdb() {
-
 	config.InfluxdbConfig = conf.Get("influxdb")
 	if config.InfluxdbConfig == nil {
 		hcc_errors.NewHccError(hcc_errors.PianoInternalParsingError, "influxdb config").Fatal()
@@ -222,6 +221,18 @@ func parseInfluxdb() {
 	}
 }
 
+func parseBilling() {
+	config.BillingConfig = conf.Get("billing")
+	if config.BillingConfig == nil {
+		hcc_errors.NewHccError(hcc_errors.PianoInternalParsingError, "billing config").Fatal()
+	}
+
+	Billing.UpdateInterval, err = config.BillingConfig.Int("billing_update_interval_sec")
+	if err != nil {
+		hcc_errors.NewHccError(hcc_errors.PianoInternalParsingError, "billing billing_update_interval_sec").Fatal()
+	}
+}
+
 // Init : Parse config file and initialize config structure
 func Init() {
 	if err = conf.Parse(configLocation); err != nil {
@@ -236,4 +247,5 @@ func Init() {
 	parseHarp()
 	parseViolin()
 	parsePiccolo()
+	parseBilling()
 }

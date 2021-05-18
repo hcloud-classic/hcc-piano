@@ -3,6 +3,7 @@ package billing
 import (
 	"errors"
 	"hcc/piano/action/grpc/client"
+	"hcc/piano/lib/config"
 	"hcc/piano/model"
 	"innogrid.com/hcloud-classic/pb"
 	"strconv"
@@ -32,8 +33,6 @@ OUT:
 func getNodeBillingInfo(groupList []*pb.Group) (*[]model.NodeBill, error) {
 	var billList []model.NodeBill
 
-	now := time.Now()
-
 	for _, group := range groupList {
 		resGetCharge, err := client.RC.GetCharge(group.Id)
 		if err != nil {
@@ -55,13 +54,16 @@ func getNodeBillingInfo(groupList []*pb.Group) (*[]model.NodeBill, error) {
 				return nil, err
 			}
 
+			if strings.ToLower(node.Status) == "off" {
+				continue
+			}
+
 			billList = append(billList, model.NodeBill{
 				GroupID:   int(group.Id),
-				Date:      strconv.Itoa(now.Year()%100*10000 + int(now.Month())*100 + now.Day()),
 				NodeUUID:  node.UUID,
-				ChargeCPU: resGetCharge.Charge.ChargeCPUPerCore * int64(node.CPUCores),
-				ChargeMEM: resGetCharge.Charge.ChargeMemoryPerGB * int64(node.Memory),
-				ChargeNIC: chargeNIC,
+				ChargeCPU: resGetCharge.Charge.ChargeCPUPerCore * int64(node.CPUCores) / 30 / (24 * 3600) * config.Billing.UpdateInterval,
+				ChargeMEM: resGetCharge.Charge.ChargeMemoryPerGB * int64(node.Memory) / 30 / (24 * 3600) * config.Billing.UpdateInterval,
+				ChargeNIC: chargeNIC / 30 / (24 * 3600) * config.Billing.UpdateInterval,
 			})
 		}
 	}
