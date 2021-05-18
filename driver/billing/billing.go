@@ -69,6 +69,10 @@ func (bill *Billing) UpdateBillingInfo() *hcc_errors.HccErrorStack {
 		_ = errStack.Push(hcc_errors.NewHccError(hcc_errors.PianoInternalOperationFail,
 			"UpdateBillingInfo(): getNodeBillingInfo(): "+err.Error()))
 	}
+	hccErr = dao.InsertNodeBillingInfo(nodeBillList)
+	if hccErr != nil {
+		_ = errStack.Push(hccErr)
+	}
 
 	// TODO: Need to implement getServerBillingInfo()
 	//serverBillList, err := getServerBillingInfo(resGetGroupList.Group)
@@ -90,11 +94,6 @@ func (bill *Billing) UpdateBillingInfo() *hcc_errors.HccErrorStack {
 	//	_ = errStack.Push(hcc_errors.NewHccError(hcc_errors.PianoInternalOperationFail,
 	//		"UpdateBillingInfo(): getVolumeBillingInfo(): "+err.Error()))
 	//}
-
-	hccErr = dao.InsertNodeBillingInfo(nodeBillList)
-	if hccErr != nil {
-		_ = errStack.Push(hccErr)
-	}
 
 	// TODO: Need to implement getServerBillingInfo()
 	//hccErr = dao.InsertServerBillingInfo(serverBillList)

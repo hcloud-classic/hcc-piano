@@ -17,7 +17,6 @@ type NetworkBill struct {
 
 type NodeBill struct {
 	GroupID   int    `json:"group_id"`
-	Date      string `json:"date"`
 	NodeUUID  string `json:"node_uuid"`
 	ChargeCPU int64  `json:"charge_cpu"`
 	ChargeMEM int64  `json:"charge_memory"`
@@ -26,11 +25,8 @@ type NodeBill struct {
 
 type ServerBill struct {
 	GroupID    int    `json:"group_id"`
-	Date       string `json:"date"`
 	ServerUUID string `json:"server_uuid"`
-	// TODO : RunningTime
-	NetworkTraffic     uint64  `json:"network_traffic"`
-	TrafficChargePerKB float32 `json:"traffic_charge_per_KB"`
+	NetworkTrafficKB     uint64  `json:"network_traffic_kb"`
 }
 
 type VolumeBill struct {
