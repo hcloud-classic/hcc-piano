@@ -121,29 +121,6 @@ func parseHarp() {
 	}
 }
 
-func parseViolin() {
-	config.ViolinConfig = conf.Get("violin")
-	if config.ViolinConfig == nil {
-		hcc_errors.NewHccError(hcc_errors.PianoInternalParsingError, "no violin section").Fatal()
-	}
-
-	Violin = violin{}
-	Violin.ServerAddress, err = config.ViolinConfig.String("violin_server_address")
-	if err != nil {
-		hcc_errors.NewHccError(hcc_errors.PianoInternalParsingError, err.Error()).Fatal()
-	}
-
-	Violin.ServerPort, err = config.ViolinConfig.Int("violin_server_port")
-	if err != nil {
-		hcc_errors.NewHccError(hcc_errors.PianoInternalParsingError, err.Error()).Fatal()
-	}
-
-	Violin.RequestTimeoutMs, err = config.ViolinConfig.Int("violin_request_timeout_ms")
-	if err != nil {
-		hcc_errors.NewHccError(hcc_errors.PianoInternalParsingError, err.Error()).Fatal()
-	}
-}
-
 func parsePiccolo() {
 	config.PiccoloConfig = conf.Get("piccolo")
 	if config.PiccoloConfig == nil {
@@ -227,6 +204,11 @@ func parseBilling() {
 		hcc_errors.NewHccError(hcc_errors.PianoInternalParsingError, "billing config").Fatal()
 	}
 
+	Billing.Debug, err = config.BillingConfig.String("billing_debug")
+	if err != nil {
+		hcc_errors.NewHccError(hcc_errors.PianoInternalParsingError, "billing billing_debug").Fatal()
+	}
+
 	Billing.UpdateInterval, err = config.BillingConfig.Int("billing_update_interval_sec")
 	if err != nil {
 		hcc_errors.NewHccError(hcc_errors.PianoInternalParsingError, "billing billing_update_interval_sec").Fatal()
@@ -245,7 +227,6 @@ func Init() {
 	parseFlute()
 	parseCello()
 	parseHarp()
-	parseViolin()
 	parsePiccolo()
 	parseBilling()
 }

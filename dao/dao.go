@@ -1,6 +1,7 @@
 package dao
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -8,14 +9,12 @@ import (
 	dbsql "database/sql"
 	"hcc/piano/lib/mysql"
 	"hcc/piano/model"
-
-	"innogrid.com/hcloud-classic/hcc_errors"
 )
 
-func sendStmt(sql string, params ...interface{}) (dbsql.Result, *hcc_errors.HccError) {
+func sendStmt(sql string, params ...interface{}) (dbsql.Result, error) {
 	stmt, err := mysql.Db.Prepare(sql)
 	if err != nil {
-		return nil, hcc_errors.NewHccError(hcc_errors.PianoInternalOperationFail, "sql Prepare : "+err.Error())
+		return nil, err
 	}
 
 	defer func() {
@@ -25,29 +24,29 @@ func sendStmt(sql string, params ...interface{}) (dbsql.Result, *hcc_errors.HccE
 	result, err := stmt.Exec(params...)
 
 	if err != nil {
-		return result, hcc_errors.NewHccError(hcc_errors.PianoInternalOperationFail, "stmt Exec : "+err.Error())
+		return result, err
 	}
 
 	return result, nil
 }
 
-func sendQuery(sql string) (*dbsql.Rows, *hcc_errors.HccError) {
+func sendQuery(sql string) (*dbsql.Rows, error) {
 	result, err := mysql.Db.Query(sql)
 	if err != nil {
-		return nil, hcc_errors.NewHccError(hcc_errors.PianoInternalOperationFail, "sql Query : "+err.Error())
+		return nil, err
 	}
 
 	return result, nil
 }
 
-func InsertNetworkBillingInfo(infoList *[]model.NetworkBill) *hcc_errors.HccError {
+func InsertNetworkBillingInfo(infoList *[]model.NetworkBill) error {
 	sql := "INSERT INTO `piano`.`network_billing_info` (`group_id`, `date`, `subnet_charge`, `adaptive_ip_charge`) VALUES "
 
 	for _, info := range *infoList {
 		sql += fmt.Sprintf("(%d, DATE(NOW()), %d, %d),",
 			info.GroupID,
-			info.SubnetCharge,
-			info.AdaptiveIPCharge)
+			info.ChargeSubnet,
+			info.ChargeAdaptiveIP)
 	}
 
 	sql = strings.TrimSuffix(sql, ",") + " AS `new_info` "
@@ -62,11 +61,11 @@ func InsertNetworkBillingInfo(infoList *[]model.NetworkBill) *hcc_errors.HccErro
 	return err
 }
 
-func InsertNodeBillingInfo(infoList *[]model.NodeBill) *hcc_errors.HccError {
+func InsertNodeBillingInfo(infoList *[]model.NodeBill) error {
 	sql := "INSERT INTO `piano`.`node_billing_info` (`group_id`, `date`, `node_uuid`, `charge_cpu`, `charge_memory`, `charge_nic`) VALUES "
 
 	for _, info := range *infoList {
-		sql += fmt.Sprintf("(%d, DATE(NOW()), %s, %d, %d, %d),",
+		sql += fmt.Sprintf("(%d, DATE(NOW()), '%s', %d, %d, %d),",
 			info.GroupID,
 			info.NodeUUID,
 			info.ChargeCPU,
@@ -88,21 +87,19 @@ func InsertNodeBillingInfo(infoList *[]model.NodeBill) *hcc_errors.HccError {
 	return err
 }
 
-func InsertServerBillingInfo(infoList *[]model.ServerBill) *hcc_errors.HccError {
-	sql := "INSERT INTO `piano`.`server_billing_info` (`group_id`, `date`, `server_uuid`, `network_traffic`, `traffic_charge_per_kb`) VALUES "
+func InsertServerBillingInfo(infoList *[]model.ServerBill) error {
+	sql := "INSERT INTO `piano`.`server_billing_info` (`group_id`, `date`, `server_uuid`, `charge_traffic`) VALUES "
 
 	for _, info := range *infoList {
-		sql += fmt.Sprintf("(%d, DATE(NOW()), %s, %d, %f),",
+		sql += fmt.Sprintf("(%d, DATE(NOW()), '%s', %d),",
 			info.GroupID,
 			info.ServerUUID,
-			info.NetworkTraffic,
-			info.TrafficChargePerKB)
+			info.ChargeTraffic)
 	}
 
 	sql = strings.TrimSuffix(sql, ",") + " AS `new_info` "
 	sql += "ON DUPLICATE KEY UPDATE " +
-		"`network_traffic` = `new_info`.`network_traffic`, " +
-		"`traffic_charge_per_kb` = `new_info`.`traffic_charge_per_kb`;"
+		"`charge_traffic` = `new_info`.`charge_traffic`;"
 
 	res, err := sendQuery(sql)
 	if res != nil {
@@ -112,7 +109,7 @@ func InsertServerBillingInfo(infoList *[]model.ServerBill) *hcc_errors.HccError 
 	return err
 }
 
-func InsertVolumeBillingInfo(infoList *[]model.VolumeBill) *hcc_errors.HccError {
+func InsertVolumeBillingInfo(infoList *[]model.VolumeBill) error {
 	sql := "INSERT INTO `piano`.`volume_billing_info` (`group_id`, `date`, `hdd_charge`, `ssd_charge`) VALUES "
 
 	for _, info := range *infoList {
@@ -135,7 +132,7 @@ func InsertVolumeBillingInfo(infoList *[]model.VolumeBill) *hcc_errors.HccError 
 	return err
 }
 
-func InsertDailyInfo() *hcc_errors.HccError {
+func InsertDailyInfo() error {
 
 	sql := "INSERT INTO `piano`.`daily_info` (`date`, `group_id`, `charge_node`, `charge_server`, `charge_network`, `charge_volume`) SELECT	`current_info`.`date`, `current_info`.`group_id`, `current_info`.`charge_node`,	`current_info`.`charge_network`, `current_info`.`charge_server`, `current_info`.`charge_volume` FROM (SELECT `node_charge`.`date` AS `date`, `node_charge`.`group_id` AS `group_id`, `charge_node`, `charge_network`, `charge_server`, `charge_volume` FROM (SELECT `node`.`group_id`, `node`.`date`, (`node`.`charge_cpu` + `node`.`charge_memory` + `node`.`charge_nic`) AS `charge_node` FROM `piano`.`node_billing_info` AS `node` WHERE `node`.`date` = DATE(NOW()) GROUP BY `node`.`group_id`, `node`.`date`) AS `node_charge` LEFT JOIN (SELECT `net`.`group_id`, `net`.`date`, (`net`.`subnet_charge` + `net`.`adaptive_ip_charge`) AS `charge_network` FROM `piano`.`network_billing_info` AS `net` WHERE `net`.`date` = DATE(NOW())) AS `net_charge` ON `net_charge`.`date` = `node_charge`.`date` AND `net_charge`.`group_id` = `node_charge`.`group_id` LEFT JOIN (SELECT `server`.`group_id`, `server`.`date`, SUM(`server`.`network_traffic` * `server`.`traffic_charge_per_kb`) AS `charge_server` FROM `piano`.`server_billing_info` AS `server` WHERE `server`.`date` = DATE(NOW()) GROUP BY `server`.`group_id`, `server`.`date`) AS `server_charge` ON `server_charge`.`date` = `node_charge`.`date` AND `server_charge`.`group_id` = `node_charge`.`group_id` LEFT JOIN (SELECT `volume`.`group_id`, `volume`.`date`, (``volume`.`hdd_charge` + `volume`.`ssd_charge`) AS `charge_volume` FROM `piano`.`volume_billing_info` AS `volume` WHERE `volume`.`date` = DATE(NOW())) AS `volume_charge` ON `volume_charge`.`date` = `node_charge`.`date` AND `volume_charge`.`group_id` = `node_charge`.`group_id`) AS `current_info` ON DUPLICATE KEY UPDATE `daily_info`.`charge_node` = `current_info`.`charge_node`, `daily_info`.`charge_server` = `current_info`.`charge_server`, `daily_info`.`charge_network` = `current_info`.`charge_network`, `daily_info`.`charge_volume` = `current_info`.`charge_volume`;"
 
@@ -147,7 +144,7 @@ func InsertDailyInfo() *hcc_errors.HccError {
 	return err
 }
 
-func GetBill(groupID int, start, end, billType string, row, page int) (*dbsql.Rows, *hcc_errors.HccError) {
+func GetBill(groupID int, start, end, billType string, row, page int) (*dbsql.Rows, error) {
 	billIdStart := strconv.Itoa(groupID) + start
 	billIdEnd := strconv.Itoa(groupID) + end
 	billType = strings.ToLower(billType)
@@ -162,7 +159,7 @@ func GetBill(groupID int, start, end, billType string, row, page int) (*dbsql.Ro
 		sql = "SELECT * FROM `piano`.`" + billType + "_bill` WHERE `bill_id` BETWEEN " + billIdStart + " AND " +
 			billIdEnd + " LIMIT " + strconv.Itoa(row) + " OFFSET " + strconv.Itoa(row*page) + ";"
 	default:
-		return nil, hcc_errors.NewHccError(hcc_errors.PianoSQLOperationFail, "DAO(GetBill) -> Unsupport billing type")
+		return nil, errors.New("DAO(GetBill) -> Unsupported billing type")
 	}
 
 	res, err := sendQuery(sql)
@@ -170,7 +167,7 @@ func GetBill(groupID int, start, end, billType string, row, page int) (*dbsql.Ro
 	return res, err
 }
 
-func GetBillInfo(groupID int, date, billType, category string) (*dbsql.Rows, *hcc_errors.HccError) {
+func GetBillInfo(groupID int, date, billType, category string) (*dbsql.Rows, error) {
 	billType = strings.ToLower(billType)
 	category = strings.ToLower(category)
 	dateStart := date
@@ -188,7 +185,7 @@ func GetBillInfo(groupID int, date, billType, category string) (*dbsql.Rows, *hc
 	case "yearly":
 		dateEnd += 10000
 	default:
-		return nil, hcc_errors.NewHccError(hcc_errors.PianoSQLOperationFail, "DAO(GetBillInfo) -> Unsupport billing type")
+		return nil, errors.New("DAO(GetBill) -> Unsupported billing type")
 	}
 
 	switch category {
@@ -201,7 +198,7 @@ func GetBillInfo(groupID int, date, billType, category string) (*dbsql.Rows, *hc
 	case "volume":
 		break
 	default:
-		return nil, hcc_errors.NewHccError(hcc_errors.PianoSQLOperationFail, "DAO(GetBillInfo) -> Unsupport category")
+		return nil, errors.New("DAO(GetBill) -> Unsupported category")
 	}
 
 	sql := "SELECT * FROM `piano`.`" + category + "_billing_info` WHERE `group_id`=" + strconv.Itoa(groupID) + " AND `date` BETWEEN DATE(" + dateStart + ") AND DATE(" + strconv.Itoa(dateEnd) + ");"
