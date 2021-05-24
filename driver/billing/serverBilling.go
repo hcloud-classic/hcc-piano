@@ -1,19 +1,14 @@
 package billing
 
 import (
-	"errors"
 	"hcc/piano/action/grpc/client"
+	"hcc/piano/lib/logger"
 	"hcc/piano/model"
 	"innogrid.com/hcloud-classic/pb"
-	"strconv"
-	"strings"
-	"time"
 )
 
-func getNodeBillingInfo(groupList []*pb.Group) (*[]model.NodeBill, error) {
-	var billList []model.NodeBill
-
-	now := time.Now()
+func getServerBillingInfo(groupList []*pb.Group) (*[]model.ServerBill, error) {
+	var billList []model.ServerBill
 
 	for _, group := range groupList {
 		resGetCharge, err := client.RC.GetCharge(group.Id)
@@ -21,8 +16,8 @@ func getNodeBillingInfo(groupList []*pb.Group) (*[]model.NodeBill, error) {
 			return nil, err
 		}
 
-		resGetNodeList, err := client.RC.GetNodeList(&pb.ReqGetNodeList{
-			Node: &pb.Node{
+		resGetAdaptiveIPServerList, err := client.RC.GetAdaptiveIPServerList(&pb.ReqGetAdaptiveIPServerList{
+			AdaptiveipServer: &pb.AdaptiveIPServer{
 				GroupID: group.Id,
 			},
 		})
@@ -30,19 +25,19 @@ func getNodeBillingInfo(groupList []*pb.Group) (*[]model.NodeBill, error) {
 			return nil, err
 		}
 
-		for _, node := range resGetNodeList.Node {
-			chargeNIC, err := getChargeNIC(resGetCharge.Charge.ChargeNicList, node.NicSpeedMbps)
+		for _, adaptiveipServer := range resGetAdaptiveIPServerList.AdaptiveipServer {
+			resGetTraffic, err := client.RC.GetTraffic(adaptiveipServer.ServerUUID, getTodayByNumString())
 			if err != nil {
-				return nil, err
+				logger.Logger.Println("getServerBillingInfo(): Failed to get traffic info for serverUUID=" + adaptiveipServer.ServerUUID)
+				continue
 			}
 
-			billList = append(billList, model.NodeBill{
+			trafficTotalKB := resGetTraffic.Traffic.TxKB + resGetTraffic.Traffic.RxKB
+
+			billList = append(billList, model.ServerBill{
 				GroupID:   int(group.Id),
-				Date:      now.Format("060102"),
-				NodeUUID:  node.UUID,
-				ChargeCPU: resGetCharge.Charge.ChargeCPUPerCore * int64(node.CPUCores),
-				ChargeMEM: resGetCharge.Charge.ChargeMemoryPerGB * int64(node.Memory),
-				ChargeNIC: chargeNIC,
+				ServerUUID: adaptiveipServer.ServerUUID,
+				ChargeTraffic: int64(resGetCharge.Charge.ChargeTrafficPerKB * float32(trafficTotalKB)),
 			})
 		}
 	}

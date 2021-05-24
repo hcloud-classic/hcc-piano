@@ -3,12 +3,11 @@ package billing
 import (
 	"errors"
 	"hcc/piano/action/grpc/client"
-	"hcc/piano/lib/config"
+	"hcc/piano/lib/logger"
 	"hcc/piano/model"
 	"innogrid.com/hcloud-classic/pb"
 	"strconv"
 	"strings"
-	"time"
 )
 
 var nicSpeedsMbps = []int32{10, 100, 1000, 2500, 5000, 10000, 20000, 40000}
@@ -49,21 +48,37 @@ func getNodeBillingInfo(groupList []*pb.Group) (*[]model.NodeBill, error) {
 		}
 
 		for _, node := range resGetNodeList.Node {
-			chargeNIC, err := getChargeNIC(resGetCharge.Charge.ChargeNicList, node.NicSpeedMbps)
-			if err != nil {
-				return nil, err
-			}
+			var chargeCPU int64 = 0
+			var chargeMEM int64 = 0
+			var chargeNIC int64 = 0
 
-			if strings.ToLower(node.Status) == "off" {
-				continue
+			if strings.ToLower(node.Status) == "on" {
+				resGetNodeUptime, err := client.RC.GetNodeUptime(&pb.ReqGetNodeUptime{
+					NodeUUID: node.UUID,
+					Day:      getTodayByNumString(),
+				})
+				if err != nil {
+					logger.Logger.Println("getNodeBillingInfo(): Failed to get nodeUptime of nodeUUID=" + node.UUID)
+					continue
+				}
+
+				nodeUptimeMs := resGetNodeUptime.NodeUptime.UptimeMs
+
+				chargeCPU = int64(float64(resGetCharge.Charge.ChargeCPUPerCore * int64(node.CPUCores)) / float64(24 * 3600 * 1000) * float64(nodeUptimeMs))
+				chargeMEM = int64(float64(resGetCharge.Charge.ChargeMemoryPerGB * int64(node.Memory)) / float64(24 * 3600 * 1000) * float64(nodeUptimeMs))
+				chargeNIC, err = getChargeNIC(resGetCharge.Charge.ChargeNicList, node.NicSpeedMbps)
+				if err != nil {
+					logger.Logger.Println("getNodeBillingInfo(): Failed to get chargeNIC of nodeUUID=" + node.UUID)
+					continue
+				}
 			}
 
 			billList = append(billList, model.NodeBill{
 				GroupID:   int(group.Id),
 				NodeUUID:  node.UUID,
-				ChargeCPU: resGetCharge.Charge.ChargeCPUPerCore * int64(node.CPUCores) / 30 / (24 * 3600) * config.Billing.UpdateInterval,
-				ChargeMEM: resGetCharge.Charge.ChargeMemoryPerGB * int64(node.Memory) / 30 / (24 * 3600) * config.Billing.UpdateInterval,
-				ChargeNIC: chargeNIC / 30 / (24 * 3600) * config.Billing.UpdateInterval,
+				ChargeCPU: chargeCPU,
+				ChargeMEM: chargeMEM,
+				ChargeNIC: chargeNIC,
 			})
 		}
 	}

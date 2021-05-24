@@ -11,7 +11,6 @@ type pianoConfig struct {
 	HarpConfig     *goconf.Section
 	CelloConfig    *goconf.Section
 	FluteConfig    *goconf.Section
-	ViolinConfig   *goconf.Section
 	PiccoloConfig  *goconf.Section
 	BillingConfig  *goconf.Section
 }

@@ -8,7 +8,6 @@ import (
 type RPCClient struct {
 	flute   pb.FluteClient
 	harp    pb.HarpClient
-	violin  pb.ViolinClient
 	cello   pb.CelloClient
 	piccolo pb.PiccoloClient
 }
@@ -30,12 +29,6 @@ func Init() error {
 	}
 	checkHarp()
 
-	err = initViolin()
-	if err != nil {
-		return err
-	}
-	checkViolin()
-
 	err = initCello()
 	if err != nil {
 		return err
@@ -55,7 +48,6 @@ func Init() error {
 func End() {
 	closePiccolo()
 	closeCello()
-	closeViolin()
 	closeHarp()
 	closeFlute()
 }
