@@ -40,7 +40,7 @@ func sendQuery(sql string) (*dbsql.Rows, error) {
 }
 
 func InsertNetworkBillingInfo(infoList *[]model.NetworkBill) error {
-	sql := "INSERT INTO `piano`.`network_billing_info` (`group_id`, `date`, `subnet_charge`, `adaptive_ip_charge`) VALUES "
+	sql := "INSERT INTO `piano`.`network_billing_info` (`group_id`, `date`, `charge_subnet`, `charge_adaptive_ip`) VALUES "
 
 	for _, info := range *infoList {
 		sql += fmt.Sprintf("(%d, DATE(NOW()), %d, %d),",
@@ -51,8 +51,8 @@ func InsertNetworkBillingInfo(infoList *[]model.NetworkBill) error {
 
 	sql = strings.TrimSuffix(sql, ",") + " AS `new_info` "
 	sql += "ON DUPLICATE KEY UPDATE " +
-		"`subnet_charge` = `new_info`.`subnet_charge`, " +
-		"`adaptive_ip_charge` = `new_info`.`adaptive_ip_charge`;"
+		"`charge_subnet` = `new_info`.`charge_subnet`, " +
+		"`charge_adaptive_ip` = `new_info`.`charge_adaptive_ip`;"
 
 	res, err := sendQuery(sql)
 	if res != nil {

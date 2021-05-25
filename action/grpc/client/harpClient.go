@@ -77,6 +77,19 @@ func checkHarp() {
 	}()
 }
 
+// GetSubnetList : Get the list of subnets
+func (rc *RPCClient) GetSubnetList(in *pb.ReqGetSubnetList) (*pb.ResGetSubnetList, error) {
+	ctx, cancel := context.WithTimeout(context.Background(),
+		time.Duration(config.Harp.RequestTimeoutMs)*time.Millisecond)
+	defer cancel()
+	subnetList, err := rc.harp.GetSubnetList(ctx, in)
+	if err != nil {
+		return nil, err
+	}
+
+	return subnetList, nil
+}
+
 // GetAdaptiveIPServerList : Get list of the adaptiveIP server
 func (rc *RPCClient) GetAdaptiveIPServerList(in *pb.ReqGetAdaptiveIPServerList) (*pb.ResGetAdaptiveIPServerList, error) {
 	ctx, cancel := context.WithTimeout(context.Background(),

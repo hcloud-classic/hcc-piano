@@ -97,12 +97,18 @@ func (bill *Billing) UpdateBillingInfo() {
 		}
 	}
 
-	// TODO: Need to implement getNetworkBillingInfo()
-	//networkBillList, err := getNetworkBillingInfo(resGetGroupList.Group)
-	//if err != nil {
-	//	_ = errStack.Push(hcc_errors.NewHccError(hcc_errors.PianoInternalOperationFail,
-	//		"UpdateBillingInfo(): getNetworkBillingInfo(): "+err.Error()))
-	//}
+	networkBillList, err := getNetworkBillingInfo(resGetGroupList.Group)
+	if err != nil {
+		logger.Logger.Println("UpdateBillingInfo(): getNetworkBillingInfo(): "+err.Error())
+	} else {
+		if config.Billing.Debug == "on" {
+			logger.Logger.Println("RunUpdateTimer(): Inserting network_billing_info")
+		}
+		err = dao.InsertNetworkBillingInfo(networkBillList)
+		if err != nil {
+			logger.Logger.Println("UpdateBillingInfo(): InsertNetworkBillingInfo(): " + err.Error())
+		}
+	}
 
 	// TODO: Need to implement getVolumeBillingInfo()
 	//volumeBillList, err := getVolumeBillingInfo(resGetGroupList.Group)
@@ -111,11 +117,6 @@ func (bill *Billing) UpdateBillingInfo() {
 	//		"UpdateBillingInfo(): getVolumeBillingInfo(): "+err.Error()))
 	//}
 
-	// TODO: Need to implement getNetworkBillingInfo()
-	//hccErr = dao.InsertNetworkBillingInfo(networkBillList)
-	//if hccErr != nil {
-	//	_ = errStack.Push(hccErr)
-	//}
 
 	// TODO: Need to implement getVolumeBillingInfo()
 	//hccErr = dao.InsertVolumeBillingInfo(volumeBillList)
@@ -145,7 +146,6 @@ func (bill *Billing) readNetworkBillingInfo(groupID int, date, billType string) 
 	for res.Next() {
 		var billInfo model.NetworkBill
 		_ = res.Scan(&billInfo.GroupID,
-			&billInfo.Date,
 			&billInfo.ChargeSubnet,
 			&billInfo.ChargeAdaptiveIP)
 		billList = append(billList, billInfo)
