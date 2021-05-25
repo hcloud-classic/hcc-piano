@@ -45,7 +45,9 @@ func (bill *Billing) RunUpdateTimer() {
 			case <-done:
 				return
 			case <-bill.updateTimer.C:
-				logger.Logger.Println("RunUpdateTimer(): Updating billing information")
+				if config.Billing.Debug == "on" {
+					logger.Logger.Println("RunUpdateTimer(): Updating billing information")
+				}
 				DriverBilling.UpdateBillingInfo()
 				break
 			}
@@ -54,26 +56,41 @@ func (bill *Billing) RunUpdateTimer() {
 }
 
 func (bill *Billing) UpdateBillingInfo() {
+	if config.Billing.Debug == "on" {
+		logger.Logger.Println("RunUpdateTimer(): Getting group list")
+	}
 	resGetGroupList, err := client.RC.GetGroupList()
 	if err != nil {
 		logger.Logger.Println("UpdateBillingInfo(): GetGroupList(): " + err.Error())
 		return
 	}
 
+	if config.Billing.Debug == "on" {
+		logger.Logger.Println("RunUpdateTimer(): Getting node_billing_info")
+	}
 	nodeBillList, err := getNodeBillingInfo(resGetGroupList.Group)
 	if err != nil {
 		logger.Logger.Println("UpdateBillingInfo(): getNodeBillingInfo(): " + err.Error())
 	} else {
+		if config.Billing.Debug == "on" {
+			logger.Logger.Println("RunUpdateTimer(): Inserting node_billing_info")
+		}
 		err = dao.InsertNodeBillingInfo(nodeBillList)
 		if err != nil {
 			logger.Logger.Println("UpdateBillingInfo(): InsertNodeBillingInfo(): " + err.Error())
 		}
 	}
 
+	if config.Billing.Debug == "on" {
+		logger.Logger.Println("RunUpdateTimer(): Getting server_billing_info")
+	}
 	serverBillList, err := getServerBillingInfo(resGetGroupList.Group)
 	if err != nil {
 		logger.Logger.Println("UpdateBillingInfo(): getServerBillingInfo(): " + err.Error())
 	} else {
+		if config.Billing.Debug == "on" {
+			logger.Logger.Println("RunUpdateTimer(): Inserting server_billing_info")
+		}
 		err = dao.InsertServerBillingInfo(serverBillList)
 		if err != nil {
 			logger.Logger.Println("UpdateBillingInfo(): InsertServerBillingInfo(): " + err.Error())
