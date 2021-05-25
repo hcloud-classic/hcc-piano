@@ -1,6 +1,7 @@
 package billing
 
 import (
+	"hcc/piano/lib/config"
 	"time"
 
 	"hcc/piano/lib/logger"
@@ -16,9 +17,9 @@ func reserveRegisterUpdateTimer() {
 	defer DriverBilling.UpdateBillingInfo()
 	logger.Logger.Println("Register billing info update timer")
 
-	now := time.Now().Add(1 * time.Hour)
+	now := time.Now().Add(time.Duration(config.Billing.UpdateInterval) * time.Second)
 	<-time.After(time.Until(time.Date(now.Year(), now.Month(), now.Day(),
-		now.Hour(), 0, 0, 0, now.Location())))
+		now.Hour(), now.Minute(), now.Second(), 0, now.Location())))
 
 	DriverBilling.RunUpdateTimer()
 }

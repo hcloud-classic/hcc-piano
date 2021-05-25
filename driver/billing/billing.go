@@ -2,6 +2,7 @@ package billing
 
 import (
 	"errors"
+	"hcc/piano/lib/config"
 	"time"
 
 	"hcc/piano/action/grpc/client"
@@ -18,12 +19,12 @@ type Billing struct {
 
 func (bill *Billing) RunUpdateTimer() {
 	if bill.updateTimer == nil {
-		bill.updateTimer = time.NewTicker(1 * time.Hour)
+		bill.updateTimer = time.NewTicker(time.Duration(config.Billing.UpdateInterval) * time.Second)
 	} else {
 		// upper go v1.15
 		// bill.updateTimer.Reset(duration)
 		bill.updateTimer.Stop()
-		bill.updateTimer = time.NewTicker(1 * time.Hour)
+		bill.updateTimer = time.NewTicker(time.Duration(config.Billing.UpdateInterval) * time.Second)
 
 		return
 	}
@@ -44,7 +45,9 @@ func (bill *Billing) RunUpdateTimer() {
 			case <-done:
 				return
 			case <-bill.updateTimer.C:
-				logger.Logger.Println("RunUpdateTimer(): Updating billing information")
+				if config.Billing.Debug == "on" {
+					logger.Logger.Println("RunUpdateTimer(): Updating billing information")
+				}
 				DriverBilling.UpdateBillingInfo()
 				break
 			}
@@ -53,38 +56,59 @@ func (bill *Billing) RunUpdateTimer() {
 }
 
 func (bill *Billing) UpdateBillingInfo() {
+	if config.Billing.Debug == "on" {
+		logger.Logger.Println("RunUpdateTimer(): Getting group list")
+	}
 	resGetGroupList, err := client.RC.GetGroupList()
 	if err != nil {
 		logger.Logger.Println("UpdateBillingInfo(): GetGroupList(): " + err.Error())
 		return
 	}
 
+	if config.Billing.Debug == "on" {
+		logger.Logger.Println("RunUpdateTimer(): Getting node_billing_info")
+	}
 	nodeBillList, err := getNodeBillingInfo(resGetGroupList.Group)
 	if err != nil {
 		logger.Logger.Println("UpdateBillingInfo(): getNodeBillingInfo(): " + err.Error())
 	} else {
+		if config.Billing.Debug == "on" {
+			logger.Logger.Println("RunUpdateTimer(): Inserting node_billing_info")
+		}
 		err = dao.InsertNodeBillingInfo(nodeBillList)
 		if err != nil {
 			logger.Logger.Println("UpdateBillingInfo(): InsertNodeBillingInfo(): " + err.Error())
 		}
 	}
 
+	if config.Billing.Debug == "on" {
+		logger.Logger.Println("RunUpdateTimer(): Getting server_billing_info")
+	}
 	serverBillList, err := getServerBillingInfo(resGetGroupList.Group)
 	if err != nil {
 		logger.Logger.Println("UpdateBillingInfo(): getServerBillingInfo(): " + err.Error())
 	} else {
+		if config.Billing.Debug == "on" {
+			logger.Logger.Println("RunUpdateTimer(): Inserting server_billing_info")
+		}
 		err = dao.InsertServerBillingInfo(serverBillList)
 		if err != nil {
 			logger.Logger.Println("UpdateBillingInfo(): InsertServerBillingInfo(): " + err.Error())
 		}
 	}
 
-	// TODO: Need to implement getNetworkBillingInfo()
-	//networkBillList, err := getNetworkBillingInfo(resGetGroupList.Group)
-	//if err != nil {
-	//	_ = errStack.Push(hcc_errors.NewHccError(hcc_errors.PianoInternalOperationFail,
-	//		"UpdateBillingInfo(): getNetworkBillingInfo(): "+err.Error()))
-	//}
+	networkBillList, err := getNetworkBillingInfo(resGetGroupList.Group)
+	if err != nil {
+		logger.Logger.Println("UpdateBillingInfo(): getNetworkBillingInfo(): "+err.Error())
+	} else {
+		if config.Billing.Debug == "on" {
+			logger.Logger.Println("RunUpdateTimer(): Inserting network_billing_info")
+		}
+		err = dao.InsertNetworkBillingInfo(networkBillList)
+		if err != nil {
+			logger.Logger.Println("UpdateBillingInfo(): InsertNetworkBillingInfo(): " + err.Error())
+		}
+	}
 
 	// TODO: Need to implement getVolumeBillingInfo()
 	//volumeBillList, err := getVolumeBillingInfo(resGetGroupList.Group)
@@ -93,11 +117,6 @@ func (bill *Billing) UpdateBillingInfo() {
 	//		"UpdateBillingInfo(): getVolumeBillingInfo(): "+err.Error()))
 	//}
 
-	// TODO: Need to implement getNetworkBillingInfo()
-	//hccErr = dao.InsertNetworkBillingInfo(networkBillList)
-	//if hccErr != nil {
-	//	_ = errStack.Push(hccErr)
-	//}
 
 	// TODO: Need to implement getVolumeBillingInfo()
 	//hccErr = dao.InsertVolumeBillingInfo(volumeBillList)
@@ -127,7 +146,6 @@ func (bill *Billing) readNetworkBillingInfo(groupID int, date, billType string) 
 	for res.Next() {
 		var billInfo model.NetworkBill
 		_ = res.Scan(&billInfo.GroupID,
-			&billInfo.Date,
 			&billInfo.ChargeSubnet,
 			&billInfo.ChargeAdaptiveIP)
 		billList = append(billList, billInfo)

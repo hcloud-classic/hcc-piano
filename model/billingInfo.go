@@ -10,7 +10,6 @@ type Bill struct {
 
 type NetworkBill struct {
 	GroupID          int    `json:"group_id"`
-	Date             string `json:"date"`
 	ChargeSubnet     int64  `json:"charge_subnet"`
 	ChargeAdaptiveIP int64  `json:"charge_adaptive_ip"`
 }
@@ -24,9 +23,9 @@ type NodeBill struct {
 }
 
 type ServerBill struct {
-	GroupID    int    `json:"group_id"`
-	ServerUUID string `json:"server_uuid"`
-	ChargeTraffic     int64  `json:"charge_traffic"`
+	GroupID       int    `json:"group_id"`
+	ServerUUID    string `json:"server_uuid"`
+	ChargeTraffic int64  `json:"charge_traffic"`
 }
 
 type VolumeBill struct {
