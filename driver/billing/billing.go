@@ -2,6 +2,7 @@ package billing
 
 import (
 	"errors"
+	"hcc/piano/lib/config"
 	"time"
 
 	"hcc/piano/action/grpc/client"
@@ -18,12 +19,12 @@ type Billing struct {
 
 func (bill *Billing) RunUpdateTimer() {
 	if bill.updateTimer == nil {
-		bill.updateTimer = time.NewTicker(1 * time.Hour)
+		bill.updateTimer = time.NewTicker(time.Duration(config.Billing.UpdateInterval) * time.Second)
 	} else {
 		// upper go v1.15
 		// bill.updateTimer.Reset(duration)
 		bill.updateTimer.Stop()
-		bill.updateTimer = time.NewTicker(1 * time.Hour)
+		bill.updateTimer = time.NewTicker(time.Duration(config.Billing.UpdateInterval) * time.Second)
 
 		return
 	}
