@@ -64,8 +64,8 @@ func getNodeBillingInfo(groupList []*pb.Group) (*[]model.NodeBill, error) {
 
 				nodeUptimeMs := resGetNodeUptime.NodeUptime.UptimeMs
 
-				chargeCPU = int64(float64(resGetCharge.Charge.ChargeCPUPerCore * int64(node.CPUCores)) / float64(24 * 3600 * 1000) * float64(nodeUptimeMs))
-				chargeMEM = int64(float64(resGetCharge.Charge.ChargeMemoryPerGB * int64(node.Memory)) / float64(24 * 3600 * 1000) * float64(nodeUptimeMs))
+				chargeCPU = int64(float64(resGetCharge.Charge.ChargeCPUPerCore*int64(node.CPUCores)) / float64(24*3600*1000) * float64(nodeUptimeMs))
+				chargeMEM = int64(float64(resGetCharge.Charge.ChargeMemoryPerGB*int64(node.Memory)) / float64(24*3600*1000) * float64(nodeUptimeMs))
 				chargeNIC, err = getChargeNIC(resGetCharge.Charge.ChargeNicList, node.NicSpeedMbps)
 				if err != nil {
 					logger.Logger.Println("getNodeBillingInfo(): Failed to get chargeNIC of nodeUUID=" + node.UUID)

@@ -24,9 +24,9 @@ type NodeBill struct {
 }
 
 type ServerBill struct {
-	GroupID    int    `json:"group_id"`
-	ServerUUID string `json:"server_uuid"`
-	ChargeTraffic     int64  `json:"charge_traffic"`
+	GroupID       int    `json:"group_id"`
+	ServerUUID    string `json:"server_uuid"`
+	ChargeTraffic int64  `json:"charge_traffic"`
 }
 
 type VolumeBill struct {
