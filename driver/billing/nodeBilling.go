@@ -33,6 +33,10 @@ func getNodeBillingInfo(groupList []*pb.Group) (*[]model.NodeBill, error) {
 	var billList []model.NodeBill
 
 	for _, group := range groupList {
+		if group.Id == 1 {
+			continue
+		}
+
 		resGetCharge, err := client.RC.GetCharge(group.Id)
 		if err != nil {
 			return nil, err

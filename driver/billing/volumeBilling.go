@@ -12,6 +12,10 @@ func getVolumeBillingInfo(groupList []*pb.Group) (*[]model.VolumeBill, error) {
 	var billList []model.VolumeBill
 
 	for _, group := range groupList {
+		if group.Id == 1 {
+			continue
+		}
+
 		resGetCharge, err := client.RC.GetCharge(group.Id)
 		if err != nil {
 			return nil, err
