@@ -15,6 +15,7 @@ type Billing struct {
 	lastUpdate  time.Time
 	updateTimer *time.Ticker
 	StopTimer   func()
+	IsRunning   bool
 }
 
 func (bill *Billing) RunUpdateTimer() {
@@ -31,18 +32,17 @@ func (bill *Billing) RunUpdateTimer() {
 	done := make(chan bool)
 	bill.StopTimer = func() {
 		done <- true
-		bill.updateTimer.Stop()
 	}
 
 	go func() {
-		defer func() {
-			bill.updateTimer.Stop()
-			bill.updateTimer = nil
-		}()
-
 		for true {
 			select {
 			case <-done:
+				logger.Logger.Println("RunUpdateTimer(): Stopping billing update timer")
+
+				bill.updateTimer.Stop()
+				bill.updateTimer = nil
+
 				return
 			case <-bill.updateTimer.C:
 				if config.Billing.Debug == "on" {
@@ -56,12 +56,15 @@ func (bill *Billing) RunUpdateTimer() {
 }
 
 func (bill *Billing) UpdateBillingInfo() {
+	bill.IsRunning = true
+
 	if config.Billing.Debug == "on" {
 		logger.Logger.Println("RunUpdateTimer(): Getting group list")
 	}
 	resGetGroupList, err := client.RC.GetGroupList()
 	if err != nil {
 		logger.Logger.Println("UpdateBillingInfo(): GetGroupList(): " + err.Error())
+		bill.IsRunning = false
 		return
 	}
 
@@ -132,6 +135,8 @@ func (bill *Billing) UpdateBillingInfo() {
 			bill.lastUpdate = time.Now()
 		}
 	}
+
+	bill.IsRunning = false
 }
 
 func (bill *Billing) readNetworkBillingInfo(groupID int, date, billType string) (*[]model.NetworkBill, error) {

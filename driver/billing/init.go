@@ -35,4 +35,13 @@ func End() {
 	if DriverBilling.StopTimer != nil {
 		DriverBilling.StopTimer()
 	}
+
+	for true {
+		if DriverBilling.IsRunning {
+			logger.Logger.Println("Wait for done of inserting billing information...")
+			time.Sleep(1 * time.Second)
+			continue
+		}
+		break
+	}
 }
