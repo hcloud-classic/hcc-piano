@@ -10,6 +10,10 @@ func getNetworkBillingInfo(groupList []*pb.Group) (*[]model.NetworkBill, error) 
 	var billList []model.NetworkBill
 
 	for _, group := range groupList {
+		if group.Id == 1 {
+			continue
+		}
+
 		resGetCharge, err := client.RC.GetCharge(group.Id)
 		if err != nil {
 			return nil, err

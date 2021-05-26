@@ -11,6 +11,10 @@ func getServerBillingInfo(groupList []*pb.Group) (*[]model.ServerBill, error) {
 	var billList []model.ServerBill
 
 	for _, group := range groupList {
+		if group.Id == 1 {
+			continue
+		}
+
 		resGetCharge, err := client.RC.GetCharge(group.Id)
 		if err != nil {
 			return nil, err

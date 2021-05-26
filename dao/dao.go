@@ -3,6 +3,7 @@ package dao
 import (
 	"errors"
 	"fmt"
+	"innogrid.com/hcloud-classic/pb"
 	"strconv"
 	"strings"
 
@@ -37,28 +38,6 @@ func sendQuery(sql string) (*dbsql.Rows, error) {
 	}
 
 	return result, nil
-}
-
-func InsertNetworkBillingInfo(infoList *[]model.NetworkBill) error {
-	sql := "INSERT INTO `piano`.`network_billing_info` (`group_id`, `date`, `charge_subnet`, `charge_adaptive_ip`) VALUES "
-
-	for _, info := range *infoList {
-		sql += fmt.Sprintf("(%d, DATE(NOW()), %d, %d),",
-			info.GroupID,
-			info.ChargeSubnet,
-			info.ChargeAdaptiveIP)
-	}
-
-	sql = strings.TrimSuffix(sql, ",") + " AS `new_info` "
-	sql += "ON DUPLICATE KEY UPDATE " +
-		"`charge_subnet` = `new_info`.`charge_subnet`, " +
-		"`charge_adaptive_ip` = `new_info`.`charge_adaptive_ip`;"
-
-	res, err := sendQuery(sql)
-	if res != nil {
-		_ = res.Close()
-	}
-	return err
 }
 
 func InsertNodeBillingInfo(infoList *[]model.NodeBill) error {
@@ -109,20 +88,42 @@ func InsertServerBillingInfo(infoList *[]model.ServerBill) error {
 	return err
 }
 
-func InsertVolumeBillingInfo(infoList *[]model.VolumeBill) error {
-	sql := "INSERT INTO `piano`.`volume_billing_info` (`group_id`, `date`, `hdd_charge`, `ssd_charge`) VALUES "
+func InsertNetworkBillingInfo(infoList *[]model.NetworkBill) error {
+	sql := "INSERT INTO `piano`.`network_billing_info` (`group_id`, `date`, `charge_subnet`, `charge_adaptive_ip`) VALUES "
 
 	for _, info := range *infoList {
 		sql += fmt.Sprintf("(%d, DATE(NOW()), %d, %d),",
 			info.GroupID,
-			info.HDDCharge,
-			info.SSDCharge)
+			info.ChargeSubnet,
+			info.ChargeAdaptiveIP)
 	}
 
 	sql = strings.TrimSuffix(sql, ",") + " AS `new_info` "
 	sql += "ON DUPLICATE KEY UPDATE " +
-		"`hdd_charge` = `new_info`.`hdd_charge`," +
-		"`ssd_charge` = `new_info`.`ssd_charge`;"
+		"`charge_subnet` = `new_info`.`charge_subnet`, " +
+		"`charge_adaptive_ip` = `new_info`.`charge_adaptive_ip`;"
+
+	res, err := sendQuery(sql)
+	if res != nil {
+		_ = res.Close()
+	}
+	return err
+}
+
+func InsertVolumeBillingInfo(infoList *[]model.VolumeBill) error {
+	sql := "INSERT INTO `piano`.`volume_billing_info` (`group_id`, `date`, `charge_ssd`, `charge_hdd`) VALUES "
+
+	for _, info := range *infoList {
+		sql += fmt.Sprintf("(%d, DATE(NOW()), %d, %d),",
+			info.GroupID,
+			info.ChargeSSD,
+			info.ChargeHDD)
+	}
+
+	sql = strings.TrimSuffix(sql, ",") + " AS `new_info` "
+	sql += "ON DUPLICATE KEY UPDATE " +
+		"`charge_ssd` = `new_info`.`charge_ssd`," +
+		"`charge_hdd` = `new_info`.`charge_hdd`;"
 
 	res, err := sendQuery(sql)
 	if res != nil {
@@ -132,9 +133,81 @@ func InsertVolumeBillingInfo(infoList *[]model.VolumeBill) error {
 	return err
 }
 
-func InsertDailyInfo() error {
+func GetDailyInfo(groupList []*pb.Group,
+	nodeBillingList *[]model.NodeBill,
+	serverBillingList *[]model.ServerBill,
+	networkBillingList *[]model.NetworkBill,
+	volumeBillingList *[]model.VolumeBill) *[]model.DailyBill {
+	var billList []model.DailyBill
 
-	sql := "INSERT INTO `piano`.`daily_info` (`date`, `group_id`, `charge_node`, `charge_server`, `charge_network`, `charge_volume`) SELECT	`current_info`.`date`, `current_info`.`group_id`, `current_info`.`charge_node`,	`current_info`.`charge_network`, `current_info`.`charge_server`, `current_info`.`charge_volume` FROM (SELECT `node_charge`.`date` AS `date`, `node_charge`.`group_id` AS `group_id`, `charge_node`, `charge_network`, `charge_server`, `charge_volume` FROM (SELECT `node`.`group_id`, `node`.`date`, (`node`.`charge_cpu` + `node`.`charge_memory` + `node`.`charge_nic`) AS `charge_node` FROM `piano`.`node_billing_info` AS `node` WHERE `node`.`date` = DATE(NOW()) GROUP BY `node`.`group_id`, `node`.`date`) AS `node_charge` LEFT JOIN (SELECT `net`.`group_id`, `net`.`date`, (`net`.`subnet_charge` + `net`.`adaptive_ip_charge`) AS `charge_network` FROM `piano`.`network_billing_info` AS `net` WHERE `net`.`date` = DATE(NOW())) AS `net_charge` ON `net_charge`.`date` = `node_charge`.`date` AND `net_charge`.`group_id` = `node_charge`.`group_id` LEFT JOIN (SELECT `server`.`group_id`, `server`.`date`, SUM(`server`.`network_traffic` * `server`.`traffic_charge_per_kb`) AS `charge_server` FROM `piano`.`server_billing_info` AS `server` WHERE `server`.`date` = DATE(NOW()) GROUP BY `server`.`group_id`, `server`.`date`) AS `server_charge` ON `server_charge`.`date` = `node_charge`.`date` AND `server_charge`.`group_id` = `node_charge`.`group_id` LEFT JOIN (SELECT `volume`.`group_id`, `volume`.`date`, (``volume`.`hdd_charge` + `volume`.`ssd_charge`) AS `charge_volume` FROM `piano`.`volume_billing_info` AS `volume` WHERE `volume`.`date` = DATE(NOW())) AS `volume_charge` ON `volume_charge`.`date` = `node_charge`.`date` AND `volume_charge`.`group_id` = `node_charge`.`group_id`) AS `current_info` ON DUPLICATE KEY UPDATE `daily_info`.`charge_node` = `current_info`.`charge_node`, `daily_info`.`charge_server` = `current_info`.`charge_server`, `daily_info`.`charge_network` = `current_info`.`charge_network`, `daily_info`.`charge_volume` = `current_info`.`charge_volume`;"
+	for _, group := range groupList {
+		if group.Id == 1 {
+			continue
+		}
+
+		var chargeNode int64 = 0
+		var chargeServer int64 = 0
+		var chargeNetwork int64 = 0
+		var chargeVolume int64 = 0
+
+		for _, nodeBilling := range *nodeBillingList {
+			if nodeBilling.GroupID == int(group.Id) {
+				chargeNode += nodeBilling.ChargeCPU +
+					nodeBilling.ChargeMEM +
+					nodeBilling.ChargeNIC
+			}
+		}
+
+		for _, serverBilling := range *serverBillingList {
+			if serverBilling.GroupID == int(group.Id) {
+				chargeServer += serverBilling.ChargeTraffic
+			}
+		}
+
+		for _, networkBilling := range *networkBillingList {
+			if networkBilling.GroupID == int(group.Id) {
+				chargeNetwork += networkBilling.ChargeSubnet +
+					networkBilling.ChargeAdaptiveIP
+			}
+		}
+
+		for _, volumeBilling := range *volumeBillingList {
+			if volumeBilling.GroupID == int(group.Id) {
+				chargeVolume += volumeBilling.ChargeSSD +
+					volumeBilling.ChargeHDD
+			}
+		}
+
+		billList = append(billList, model.DailyBill{
+			GroupID:       int(group.Id),
+			ChargeNode:    chargeNode,
+			ChargeServer:  chargeServer,
+			ChargeNetwork: chargeNetwork,
+			ChargeVolume:  chargeVolume,
+		})
+	}
+
+	return &billList
+}
+
+func InsertDailyInfo(infoList *[]model.DailyBill) error {
+	sql := "INSERT INTO `piano`.`daily_info` (`group_id`, `date`, `charge_node`, `charge_server`, `charge_network`, `charge_volume`) VALUES "
+
+	for _, info := range *infoList {
+		sql += fmt.Sprintf("(%d, DATE(NOW()), %d, %d, %d, %d),",
+			info.GroupID,
+			info.ChargeNode,
+			info.ChargeServer,
+			info.ChargeNetwork,
+			info.ChargeVolume)
+	}
+
+	sql = strings.TrimSuffix(sql, ",") + " AS `new_info` "
+	sql += "ON DUPLICATE KEY UPDATE " +
+		"`charge_node` = `new_info`.`charge_node`, " +
+		"`charge_server` = `new_info`.`charge_server`, " +
+		"`charge_network` = `new_info`.`charge_network`, " +
+		"`charge_volume` = `new_info`.`charge_volume`;"
 
 	res, err := sendQuery(sql)
 	if res != nil {

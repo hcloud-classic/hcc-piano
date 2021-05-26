@@ -9,6 +9,7 @@ type RPCClient struct {
 	flute   pb.FluteClient
 	harp    pb.HarpClient
 	cello   pb.CelloClient
+	violin  pb.ViolinClient
 	piccolo pb.PiccoloClient
 }
 
@@ -35,6 +36,12 @@ func Init() error {
 	}
 	checkCello()
 
+	err = initViolin()
+	if err != nil {
+		return err
+	}
+	checkViolin()
+
 	err = initPiccolo()
 	if err != nil {
 		return err
@@ -47,6 +54,7 @@ func Init() error {
 // End : Close connections of gRPC clients
 func End() {
 	closePiccolo()
+	closeViolin()
 	closeCello()
 	closeHarp()
 	closeFlute()

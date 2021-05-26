@@ -121,6 +121,29 @@ func parseHarp() {
 	}
 }
 
+func parseViolin() {
+	config.ViolinConfig = conf.Get("violin")
+	if config.ViolinConfig == nil {
+		hcc_errors.NewHccError(hcc_errors.PianoInternalParsingError, "no violin section").Fatal()
+	}
+
+	Violin = violin{}
+	Violin.ServerAddress, err = config.ViolinConfig.String("violin_server_address")
+	if err != nil {
+		hcc_errors.NewHccError(hcc_errors.PianoInternalParsingError, err.Error()).Fatal()
+	}
+
+	Violin.ServerPort, err = config.ViolinConfig.Int("violin_server_port")
+	if err != nil {
+		hcc_errors.NewHccError(hcc_errors.PianoInternalParsingError, err.Error()).Fatal()
+	}
+
+	Violin.RequestTimeoutMs, err = config.ViolinConfig.Int("violin_request_timeout_ms")
+	if err != nil {
+		hcc_errors.NewHccError(hcc_errors.PianoInternalParsingError, err.Error()).Fatal()
+	}
+}
+
 func parsePiccolo() {
 	config.PiccoloConfig = conf.Get("piccolo")
 	if config.PiccoloConfig == nil {
@@ -227,6 +250,7 @@ func Init() {
 	parseFlute()
 	parseCello()
 	parseHarp()
+	parseViolin()
 	parsePiccolo()
 	parseBilling()
 }
