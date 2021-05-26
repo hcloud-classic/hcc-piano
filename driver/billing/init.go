@@ -8,7 +8,6 @@ import (
 )
 
 var DriverBilling = &Billing{
-	lastUpdate:  time.Now(),
 	updateTimer: nil,
 	StopTimer:   nil,
 }

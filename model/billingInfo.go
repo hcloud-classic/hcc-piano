@@ -35,6 +35,15 @@ type VolumeBill struct {
 	ChargeHDD int64  `json:"charge_hdd"`
 }
 
+type DailyBill struct {
+	Date          string `json:"date"`
+	GroupID       int    `json:"group_id"`
+	ChargeNode    int64  `json:"charge_node"`
+	ChargeServer  int64  `json:"charge_server"`
+	ChargeNetwork int64  `json:"charge_network"`
+	ChargeVolume  int64  `json:"charge_volume"`
+}
+
 type BillDetail struct {
 	BillID        int            `json:"bill_id"`
 	DetailNode    *[]NodeBill    `json: "detail_node"`

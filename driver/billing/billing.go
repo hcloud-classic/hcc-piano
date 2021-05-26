@@ -12,7 +12,6 @@ import (
 )
 
 type Billing struct {
-	lastUpdate  time.Time
 	updateTimer *time.Ticker
 	StopTimer   func()
 	IsRunning   bool
@@ -126,13 +125,17 @@ func (bill *Billing) UpdateBillingInfo() {
 		}
 	}
 
-	if bill.lastUpdate.Day() != time.Now().Day() {
-		logger.Logger.Println("Updating Daily Billing Info")
-		err = dao.InsertDailyInfo()
+	if err == nil {
+		if config.Billing.Debug == "on" {
+			logger.Logger.Println("RunUpdateTimer(): Getting daily_info")
+		}
+		dailyBillList := dao.GetDailyInfo(resGetGroupList.Group, nodeBillList, serverBillList, networkBillList, volumeBillList)
+		if config.Billing.Debug == "on" {
+			logger.Logger.Println("RunUpdateTimer(): Inserting daily_info")
+		}
+		err = dao.InsertDailyInfo(dailyBillList)
 		if err != nil {
 			logger.Logger.Println("UpdateBillingInfo(): InsertDailyInfo(): " + err.Error())
-		} else {
-			bill.lastUpdate = time.Now()
 		}
 	}
 
