@@ -99,7 +99,7 @@ func (bill *Billing) UpdateBillingInfo() {
 
 	networkBillList, err := getNetworkBillingInfo(resGetGroupList.Group)
 	if err != nil {
-		logger.Logger.Println("UpdateBillingInfo(): getNetworkBillingInfo(): "+err.Error())
+		logger.Logger.Println("UpdateBillingInfo(): getNetworkBillingInfo(): " + err.Error())
 	} else {
 		if config.Billing.Debug == "on" {
 			logger.Logger.Println("RunUpdateTimer(): Inserting network_billing_info")
@@ -110,19 +110,18 @@ func (bill *Billing) UpdateBillingInfo() {
 		}
 	}
 
-	// TODO: Need to implement getVolumeBillingInfo()
-	//volumeBillList, err := getVolumeBillingInfo(resGetGroupList.Group)
-	//if err != nil {
-	//	_ = errStack.Push(hcc_errors.NewHccError(hcc_errors.PianoInternalOperationFail,
-	//		"UpdateBillingInfo(): getVolumeBillingInfo(): "+err.Error()))
-	//}
-
-
-	// TODO: Need to implement getVolumeBillingInfo()
-	//hccErr = dao.InsertVolumeBillingInfo(volumeBillList)
-	//if hccErr != nil {
-	//	_ = errStack.Push(hccErr)
-	//}
+	volumeBillList, err := getVolumeBillingInfo(resGetGroupList.Group)
+	if err != nil {
+		logger.Logger.Println("UpdateBillingInfo(): getVolumeBillingInfo(): " + err.Error())
+	} else {
+		if config.Billing.Debug == "on" {
+			logger.Logger.Println("RunUpdateTimer(): Inserting volume_billing_info")
+		}
+		err = dao.InsertVolumeBillingInfo(volumeBillList)
+		if err != nil {
+			logger.Logger.Println("UpdateBillingInfo(): InsertVolumeBillingInfo(): " + err.Error())
+		}
+	}
 
 	if bill.lastUpdate.Day() != time.Now().Day() {
 		logger.Logger.Println("Updating Daily Billing Info")
@@ -205,9 +204,8 @@ func (bill *Billing) readVolumeBillingInfo(groupID int, date, billType string) (
 	for res.Next() {
 		var billInfo model.VolumeBill
 		_ = res.Scan(&billInfo.GroupID,
-			&billInfo.Date,
-			&billInfo.HDDCharge,
-			&billInfo.SSDCharge)
+			&billInfo.ChargeSSD,
+			&billInfo.ChargeHDD)
 		billList = append(billList, billInfo)
 	}
 
