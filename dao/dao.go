@@ -248,7 +248,8 @@ func GetBill(groupID int, start, end, billType string, row, page int) (*dbsql.Ro
 	}
 
 	sql = "SELECT * FROM `piano`.`" + billType + "_bill` WHERE `date` BETWEEN '" + dateStart + "' AND '" +
-		dateEnd + "' AND group_id = " + strconv.Itoa(groupID) + " LIMIT " + strconv.Itoa(row) + " OFFSET " + strconv.Itoa(row*(page-1)) + ";"
+		dateEnd + "' AND `group_id` = " + strconv.Itoa(groupID) + " ORDER BY `date` DESC " +
+		"LIMIT " + strconv.Itoa(row) + " OFFSET " + strconv.Itoa(row*(page-1)) + ";"
 
 	if config.Billing.Debug == "on" {
 		logger.Logger.Println("Sending SQL Query from GetBill(): " + sql)
