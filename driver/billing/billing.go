@@ -222,17 +222,35 @@ func (bill *Billing) readVolumeBillingInfo(groupID int, date, billType string) (
 
 func (bill *Billing) ReadBillingData(groupID *[]int32, dateStart, dateEnd, billType string, row, page int) (*[][]model.Bill, error) {
 	var billList [][]model.Bill
+	var groupIDAll []int32
+
+	if len(*groupID) == 0 {
+		resGetGroupList, err := client.RC.GetGroupList()
+		if err != nil {
+			return &billList, err
+		}
+
+		for _, group := range resGetGroupList.Group {
+			if group.Id == 1 {
+				continue
+			}
+			groupIDAll = append(groupIDAll, int32(group.Id))
+		}
+
+		groupID = &groupIDAll
+	}
 
 	for _, gid := range *groupID {
 		res, err := dao.GetBill(int(gid), dateStart, dateEnd, billType, row, page)
 		if err != nil {
 			logger.Logger.Println("ReadBillingData(): dao.GetBill(): " + err.Error())
-			continue
+			return &billList, err
 		}
 		var list []model.Bill
 		for res.Next() {
 			bill := model.Bill{}
-			_ = res.Scan(&bill.BillID,
+			_ = res.Scan(&bill.Date,
+				&bill.GroupID,
 				&bill.ChargeNode,
 				&bill.ChargeServer,
 				&bill.ChargeNetwork,

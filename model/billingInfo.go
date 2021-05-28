@@ -1,7 +1,8 @@
 package model
 
 type Bill struct {
-	BillID        uint64 `json:"bill_id"`
+	Date          string `json:"date"`
+	GroupID       uint64 `json:"group_id"`
 	ChargeNode    int64  `json:"charge_node"`
 	ChargeServer  int64  `json:"charge_server"`
 	ChargeNetwork int64  `json:"charge_network"`
