@@ -223,6 +223,9 @@ func GetBill(groupID int, start, end, billType string, row, page int) (*dbsql.Ro
 	billType = strings.ToLower(billType)
 	sql := ""
 
+	if row != 0 && page != 0 {
+		return nil, errors.New("need row and page arguments")
+	}
 	switch billType {
 	case "daily":
 		fallthrough
@@ -230,7 +233,7 @@ func GetBill(groupID int, start, end, billType string, row, page int) (*dbsql.Ro
 		fallthrough
 	case "yearly":
 		sql = "SELECT * FROM `piano`.`" + billType + "_bill` WHERE `bill_id` BETWEEN " + billIdStart + " AND " +
-			billIdEnd + " LIMIT " + strconv.Itoa(row) + " OFFSET " + strconv.Itoa(row*page) + ";"
+			billIdEnd + " LIMIT " + strconv.Itoa(row) + " OFFSET " + strconv.Itoa(row*(page-1)) + ";"
 	default:
 		return nil, errors.New("DAO(GetBill) -> Unsupported billing type")
 	}
