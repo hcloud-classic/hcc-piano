@@ -3,9 +3,12 @@ package dao
 import (
 	"errors"
 	"fmt"
+	"hcc/piano/lib/config"
+	"hcc/piano/lib/logger"
 	"innogrid.com/hcloud-classic/pb"
 	"strconv"
 	"strings"
+	"time"
 
 	dbsql "database/sql"
 	"hcc/piano/lib/mysql"
@@ -218,26 +221,38 @@ func InsertDailyInfo(infoList *[]model.DailyBill) error {
 }
 
 func GetBill(groupID int, start, end, billType string, row, page int) (*dbsql.Rows, error) {
-	billIdStart := strconv.Itoa(groupID) + start
-	billIdEnd := strconv.Itoa(groupID) + end
+	var dateStart string
+	var dateEnd string
 	billType = strings.ToLower(billType)
 	sql := ""
 
-	if row != 0 && page != 0 {
+	if row == 0 || page == 0 {
 		return nil, errors.New("need row and page arguments")
 	}
+
+	currentTime := time.Now()
+	yyFront := currentTime.Format("2006")[:2]
+
 	switch billType {
 	case "daily":
-		fallthrough
+		dateStart = yyFront + start[:2] + "-" + start[2:4] + "-" + start[4:6]
+		dateEnd = yyFront + end[:2] + "-" + end[2:4] + "-" + end[4:6]
 	case "monthly":
-		fallthrough
+		dateStart = yyFront + start[:2] + "-" + start[2:4]
+		dateEnd = yyFront + end[:2] + "-" + end[2:4]
 	case "yearly":
-		sql = "SELECT * FROM `piano`.`" + billType + "_bill` WHERE `bill_id` BETWEEN " + billIdStart + " AND " +
-			billIdEnd + " LIMIT " + strconv.Itoa(row) + " OFFSET " + strconv.Itoa(row*(page-1)) + ";"
+		dateStart = yyFront + start[:2]
+		dateEnd = yyFront + end[:2]
 	default:
 		return nil, errors.New("DAO(GetBill) -> Unsupported billing type")
 	}
 
+	sql = "SELECT * FROM `piano`.`" + billType + "_bill` WHERE `date` BETWEEN '" + dateStart + "' AND '" +
+		dateEnd + "' AND group_id = " + strconv.Itoa(groupID) + " LIMIT " + strconv.Itoa(row) + " OFFSET " + strconv.Itoa(row*(page-1)) + ";"
+
+	if config.Billing.Debug == "on" {
+		logger.Logger.Println("Sending SQL Query from GetBill(): " + sql)
+	}
 	res, err := sendQuery(sql)
 
 	return res, err

@@ -227,7 +227,7 @@ func (bill *Billing) ReadBillingData(groupID *[]int32, dateStart, dateEnd, billT
 	if len(*groupID) == 0 {
 		resGetGroupList, err := client.RC.GetGroupList()
 		if err != nil {
-			return nil, err
+			return &billList, err
 		}
 
 		for _, group := range resGetGroupList.Group {
@@ -236,18 +236,20 @@ func (bill *Billing) ReadBillingData(groupID *[]int32, dateStart, dateEnd, billT
 			}
 			groupIDAll = append(groupIDAll, int32(group.Id))
 		}
+
+		groupID = &groupIDAll
 	}
 
 	for _, gid := range *groupID {
 		res, err := dao.GetBill(int(gid), dateStart, dateEnd, billType, row, page)
 		if err != nil {
 			logger.Logger.Println("ReadBillingData(): dao.GetBill(): " + err.Error())
-			continue
+			return &billList, err
 		}
 		var list []model.Bill
 		for res.Next() {
 			bill := model.Bill{}
-			_ = res.Scan(&bill.BillID,
+			_ = res.Scan(&bill.Date,
 				&bill.GroupID,
 				&bill.ChargeNode,
 				&bill.ChargeServer,
