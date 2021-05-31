@@ -220,8 +220,8 @@ func (bill *Billing) readVolumeBillingInfo(groupID int64, date, billType string)
 	return &billList, err
 }
 
-func (bill *Billing) ReadBillingData(groupID *[]int64, dateStart, dateEnd, billType string, row, page int) (*[][]model.Bill, error) {
-	var billList [][]model.Bill
+func (bill *Billing) ReadBillingData(groupID *[]int64, dateStart, dateEnd, billType string, row, page int) (*[]model.Bill, error) {
+	var billList []model.Bill
 	var groupIDAll []int64
 
 	if len(*groupID) == 0 {
@@ -240,25 +240,21 @@ func (bill *Billing) ReadBillingData(groupID *[]int64, dateStart, dateEnd, billT
 		groupID = &groupIDAll
 	}
 
-	for _, gid := range *groupID {
-		res, err := dao.GetBill(int(gid), dateStart, dateEnd, billType, row, page)
-		if err != nil {
-			logger.Logger.Println("ReadBillingData(): dao.GetBill(): " + err.Error())
-			return &billList, err
-		}
-		var list []model.Bill
-		for res.Next() {
-			bill := model.Bill{}
-			_ = res.Scan(&bill.Date,
-				&bill.GroupID,
-				&bill.ChargeNode,
-				&bill.ChargeServer,
-				&bill.ChargeNetwork,
-				&bill.ChargeVolume)
-			list = append(list, bill)
-		}
-		billList = append(billList, list)
-		_ = res.Close()
+	res, err := dao.GetBill(groupID, dateStart, dateEnd, billType, row, page)
+	if err != nil {
+		logger.Logger.Println("ReadBillingData(): dao.GetBill(): " + err.Error())
+		return &billList, err
+	}
+
+	for res.Next() {
+		var bill model.Bill
+		_ = res.Scan(&bill.Date,
+			&bill.GroupID,
+			&bill.ChargeNode,
+			&bill.ChargeServer,
+			&bill.ChargeNetwork,
+			&bill.ChargeVolume)
+		billList = append(billList, bill)
 	}
 
 	return &billList, nil

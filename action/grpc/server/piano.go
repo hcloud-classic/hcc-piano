@@ -25,7 +25,7 @@ func (s *pianoServer) Telegraph(ctx context.Context, in *pb.ReqMetricInfo) (*pb.
 }
 
 func (s *pianoServer) GetBillingData(ctx context.Context, in *pb.ReqBillingData) (*pb.ResBillingData, error) {
-	var data *[][]model.Bill
+	var data *[]model.Bill
 	var err error
 
 	var resBillingData = pb.ResBillingData{

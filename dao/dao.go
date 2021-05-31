@@ -220,11 +220,12 @@ func InsertDailyInfo(infoList *[]model.DailyBill) error {
 	return err
 }
 
-func GetBill(groupID int, start, end, billType string, row, page int) (*dbsql.Rows, error) {
+func GetBill(groupID *[]int64, start, end, billType string, row, page int) (*dbsql.Rows, error) {
 	var dateStart string
 	var dateEnd string
 	billType = strings.ToLower(billType)
 	sql := ""
+	var groupIDQuery string
 
 	if row == 0 || page == 0 {
 		return nil, errors.New("need row and page arguments")
@@ -247,8 +248,16 @@ func GetBill(groupID int, start, end, billType string, row, page int) (*dbsql.Ro
 		return nil, errors.New("DAO(GetBill) -> Unsupported billing type")
 	}
 
+	for i := range *groupID {
+		if i == 0 {
+			groupIDQuery += "`group_id` = " + strconv.Itoa(int((*groupID)[i]))
+			continue
+		}
+		groupIDQuery += " OR `group_id` = " + strconv.Itoa(int((*groupID)[i]))
+	}
+
 	sql = "SELECT * FROM `piano`.`" + billType + "_bill` WHERE `date` BETWEEN '" + dateStart + "' AND '" +
-		dateEnd + "' AND `group_id` = " + strconv.Itoa(groupID) + " ORDER BY `date` DESC " +
+		dateEnd + "' AND (" + groupIDQuery + ") ORDER BY `date` DESC, `group_id` ASC " +
 		"LIMIT " + strconv.Itoa(row) + " OFFSET " + strconv.Itoa(row*(page-1)) + ";"
 
 	if config.Billing.Debug == "on" {
