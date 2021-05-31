@@ -30,6 +30,7 @@ type VolumeBill struct {
 type Bill struct {
 	Date          string `json:"date"`
 	GroupID       int64  `json:"group_id"`
+	GroupName     string `json:"group_name"`
 	ChargeNode    int64  `json:"charge_node"`
 	ChargeServer  int64  `json:"charge_server"`
 	ChargeNetwork int64  `json:"charge_network"`
@@ -50,6 +51,7 @@ type Node struct {
 	CPUCores int    `json:"cpu_cores"`
 	Memory   int    `json:"memory"`
 	NICSpeed string `json:"nic_speed"`
+	Uptime   int64  `json:"uptime"`
 }
 
 type DetailNode struct {
@@ -57,12 +59,35 @@ type DetailNode struct {
 	NodeBill NodeBill `json:"node_bill"`
 }
 
-type BillDetail struct {
-	Date       int         `json:"date"`
-	GroupID    int64       `json:"group_id"`
-	DetailNode *[]NodeBill `json:"detail_node"`
+type Server struct {
+	Name           string `json:"name"`
+	NetworkTraffic string `json:"network_traffic"`
+}
 
-	DetailServer  *[]ServerBill  `json: "detail_server"`
-	DetailNetwork *[]NetworkBill `json: "detail_network"`
-	DetailVolume  *[]VolumeBill  `json: "detail_volume"`
+type DetailServer struct {
+	Server     Server     `json:"server"`
+	ServerBill ServerBill `json:"server_bill"`
+}
+
+type Volume struct {
+	UUID      string `json:"uuid"`
+	Pool      string `json:"pool"`
+	UsageType string `json:"usage_type"`
+	DiskType  string `json:"disk_type"`
+	DiskSize  int    `json:"disk_size"`
+}
+
+type DetailVolume struct {
+	Volume     Volume     `json:"volume"`
+	VolumeBill VolumeBill `json:"volume_bill"`
+}
+
+type BillDetail struct {
+	Date          int            `json:"date"`
+	GroupID       int64          `json:"group_id"`
+	GroupName     string         `json:"group_name"`
+	DetailNode    *[]NodeBill    `json:"detail_node"`
+	DetailServer  *[]ServerBill  `json:"detail_server"`
+	DetailNetwork *[]NetworkBill `json:"detail_network"`
+	DetailVolume  *[]VolumeBill  `json:"detail_volume"`
 }
