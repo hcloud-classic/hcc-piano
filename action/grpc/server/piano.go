@@ -3,8 +3,10 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"hcc/piano/dao"
 	"hcc/piano/model"
 	"strconv"
+	"strings"
 
 	"hcc/piano/action/grpc/errconv"
 	"hcc/piano/driver/billing"
@@ -26,6 +28,7 @@ func (s *pianoServer) Telegraph(ctx context.Context, in *pb.ReqMetricInfo) (*pb.
 
 func (s *pianoServer) GetBillingData(ctx context.Context, in *pb.ReqBillingData) (*pb.ResBillingData, error) {
 	var data *[]model.Bill
+	var count int
 	var err error
 
 	var resBillingData = pb.ResBillingData{
@@ -35,22 +38,22 @@ func (s *pianoServer) GetBillingData(ctx context.Context, in *pb.ReqBillingData)
 		HccErrorStack: nil,
 	}
 
-	switch in.BillingType {
-	case "YEARLY":
+	switch strings.ToLower(in.BillingType) {
+	case "yearly":
 		if len(in.DateStart) != 2 {
 			goto WrongStartDate
 		}
 		if len(in.DateEnd) != 2 {
 			goto WrongEndDate
 		}
-	case "MONTHLY":
+	case "monthly":
 		if len(in.DateStart) != 4 {
 			goto WrongStartDate
 		}
 		if len(in.DateEnd) != 4 {
 			goto WrongEndDate
 		}
-	case "DAILY":
+	case "daily":
 		if len(in.DateStart) != 6 {
 			goto WrongStartDate
 		}
@@ -61,6 +64,7 @@ func (s *pianoServer) GetBillingData(ctx context.Context, in *pb.ReqBillingData)
 		resBillingData.HccErrorStack = errconv.HccStackToGrpc(
 			errors.NewHccErrorStack(
 				errors.NewHccError(errors.PianoGrpcArgumentError, "-> Unsupport BillingType")))
+		goto ERROR
 	}
 
 	_, err = strconv.Atoi(in.DateStart)
@@ -84,25 +88,37 @@ func (s *pianoServer) GetBillingData(ctx context.Context, in *pb.ReqBillingData)
 		resBillingData.Result = []byte{}
 	}
 	if err != nil {
-		resBillingData.HccErrorStack = errconv.HccStackToGrpc(
-			errors.NewHccErrorStack(
-				errors.NewHccError(errors.PianoInternalOperationFail, err.Error())))
+		goto ERROR
 	}
 
-	return &resBillingData, nil
+	count, err = dao.GetBillCount(&(in.GroupID), in.DateStart, in.DateEnd,
+		in.BillingType)
+	if err != nil {
+		goto ERROR
+	}
+	resBillingData.TotalNum = int32(count)
+
+	goto OUT
+ERROR:
+	resBillingData.HccErrorStack = errconv.HccStackToGrpc(
+		errors.NewHccErrorStack(
+			errors.NewHccError(errors.PianoInternalOperationFail, err.Error())))
+
+	goto OUT
 WrongStartDate:
 	resBillingData.HccErrorStack = errconv.HccStackToGrpc(
 		errors.NewHccErrorStack(
 			errors.NewHccError(errors.PianoGrpcArgumentError, "-> Wrong start date")))
 
-	return &resBillingData, nil
+	goto OUT
 WrongEndDate:
 	resBillingData.HccErrorStack = errconv.HccStackToGrpc(
 		errors.NewHccErrorStack(
 			errors.NewHccError(errors.PianoGrpcArgumentError, "-> Wrong end date")))
 
+	goto OUT
+OUT:
 	return &resBillingData, nil
-
 }
 
 func (s *pianoServer) GetBillingDetail(ctx context.Context, in *pb.ReqBillingData) (*pb.ResBillingData, error) {

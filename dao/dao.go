@@ -268,6 +268,59 @@ func GetBill(groupID *[]int64, start, end, billType string, row, page int) (*dbs
 	return res, err
 }
 
+func GetBillCount(groupID *[]int64, start, end, billType string) (int, error) {
+	var billCount int
+
+	var dateStart string
+	var dateEnd string
+	billType = strings.ToLower(billType)
+	sql := ""
+	var groupIDQuery string
+
+	currentTime := time.Now()
+	yyFront := currentTime.Format("2006")[:2]
+
+	switch billType {
+	case "daily":
+		dateStart = yyFront + start[:2] + "-" + start[2:4] + "-" + start[4:6]
+		dateEnd = yyFront + end[:2] + "-" + end[2:4] + "-" + end[4:6]
+	case "monthly":
+		dateStart = yyFront + start[:2] + "-" + start[2:4]
+		dateEnd = yyFront + end[:2] + "-" + end[2:4]
+	case "yearly":
+		dateStart = yyFront + start[:2]
+		dateEnd = yyFront + end[:2]
+	default:
+		return 0, errors.New("DAO(GetBill) -> Unsupported billing type")
+	}
+
+	for i := range *groupID {
+		if i == 0 {
+			groupIDQuery += "`group_id` = " + strconv.Itoa(int((*groupID)[i]))
+			continue
+		}
+		groupIDQuery += " OR `group_id` = " + strconv.Itoa(int((*groupID)[i]))
+	}
+
+	sql = "SELECT COUNT(*) FROM `piano`.`" + billType + "_bill` WHERE `date` BETWEEN '" + dateStart + "' AND '" + dateEnd + "';"
+
+	if config.Billing.Debug == "on" {
+		logger.Logger.Println("Sending SQL Query from GetBill(): " + sql)
+	}
+	res, err := sendQuery(sql)
+	if err != nil {
+		return 0, err
+	}
+
+	res.Next()
+	err = res.Scan(&billCount)
+	if err != nil {
+		return 0, err
+	}
+
+	return billCount, nil
+}
+
 func GetBillInfo(groupID int64, date, billType, category string) (*dbsql.Rows, error) {
 	billType = strings.ToLower(billType)
 	category = strings.ToLower(category)
