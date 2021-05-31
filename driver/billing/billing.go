@@ -222,23 +222,6 @@ func (bill *Billing) readVolumeBillingInfo(groupID int64, date, billType string)
 
 func (bill *Billing) ReadBillingData(groupID *[]int64, dateStart, dateEnd, billType string, row, page int) (*[]model.Bill, error) {
 	var billList []model.Bill
-	var groupIDAll []int64
-
-	if len(*groupID) == 0 {
-		resGetGroupList, err := client.RC.GetGroupList()
-		if err != nil {
-			return &billList, err
-		}
-
-		for _, group := range resGetGroupList.Group {
-			if group.Id == 1 {
-				continue
-			}
-			groupIDAll = append(groupIDAll, group.Id)
-		}
-
-		groupID = &groupIDAll
-	}
 
 	res, err := dao.GetBill(groupID, dateStart, dateEnd, billType, row, page)
 	if err != nil {

@@ -248,16 +248,22 @@ func GetBill(groupID *[]int64, start, end, billType string, row, page int) (*dbs
 		return nil, errors.New("DAO(GetBill) -> Unsupported billing type")
 	}
 
-	for i := range *groupID {
-		if i == 0 {
-			groupIDQuery += "`group_id` = " + strconv.Itoa(int((*groupID)[i]))
-			continue
+	if len(*groupID) != 0 {
+		groupIDQuery = "AND ("
+		for i := range *groupID {
+			if i == 0 {
+				groupIDQuery += "`group_id` = " + strconv.Itoa(int((*groupID)[i]))
+				continue
+			}
+			groupIDQuery += " OR `group_id` = " + strconv.Itoa(int((*groupID)[i]))
 		}
-		groupIDQuery += " OR `group_id` = " + strconv.Itoa(int((*groupID)[i]))
+		groupIDQuery += ")"
+	} else {
+		groupIDQuery = ""
 	}
 
 	sql = "SELECT * FROM `piano`.`" + billType + "_bill` WHERE `date` BETWEEN '" + dateStart + "' AND '" +
-		dateEnd + "' AND (" + groupIDQuery + ") ORDER BY `date` DESC, `group_id` ASC " +
+		dateEnd + "' " + groupIDQuery + " ORDER BY `date` DESC, `group_id` ASC " +
 		"LIMIT " + strconv.Itoa(row) + " OFFSET " + strconv.Itoa(row*(page-1)) + ";"
 
 	if config.Billing.Debug == "on" {
@@ -294,15 +300,22 @@ func GetBillCount(groupID *[]int64, start, end, billType string) (int, error) {
 		return 0, errors.New("DAO(GetBill) -> Unsupported billing type")
 	}
 
-	for i := range *groupID {
-		if i == 0 {
-			groupIDQuery += "`group_id` = " + strconv.Itoa(int((*groupID)[i]))
-			continue
+	if len(*groupID) != 0 {
+		groupIDQuery = "AND ("
+		for i := range *groupID {
+			if i == 0 {
+				groupIDQuery += "`group_id` = " + strconv.Itoa(int((*groupID)[i]))
+				continue
+			}
+			groupIDQuery += " OR `group_id` = " + strconv.Itoa(int((*groupID)[i]))
 		}
-		groupIDQuery += " OR `group_id` = " + strconv.Itoa(int((*groupID)[i]))
+		groupIDQuery += ")"
+	} else {
+		groupIDQuery = ""
 	}
 
-	sql = "SELECT COUNT(*) FROM `piano`.`" + billType + "_bill` WHERE `date` BETWEEN '" + dateStart + "' AND '" + dateEnd + "';"
+	sql = "SELECT COUNT(*) FROM `piano`.`" + billType + "_bill` WHERE `date` BETWEEN '" + dateStart + "' AND '" +
+		dateEnd + "' " + groupIDQuery + ";"
 
 	if config.Billing.Debug == "on" {
 		logger.Logger.Println("Sending SQL Query from GetBill(): " + sql)

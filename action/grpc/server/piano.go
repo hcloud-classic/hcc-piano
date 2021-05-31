@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"hcc/piano/action/grpc/client"
 	"hcc/piano/dao"
 	"hcc/piano/model"
 	"strconv"
@@ -30,6 +31,9 @@ func (s *pianoServer) GetBillingData(ctx context.Context, in *pb.ReqBillingData)
 	var data *[]model.Bill
 	var count int
 	var err error
+
+	var groupID = &in.GroupID
+	var groupIDAll []int64
 
 	var resBillingData = pb.ResBillingData{
 		BillingType:   "UNDEFINED",
@@ -64,7 +68,7 @@ func (s *pianoServer) GetBillingData(ctx context.Context, in *pb.ReqBillingData)
 		resBillingData.HccErrorStack = errconv.HccStackToGrpc(
 			errors.NewHccErrorStack(
 				errors.NewHccError(errors.PianoGrpcArgumentError, "-> Unsupport BillingType")))
-		goto ERROR
+		goto OUT
 	}
 
 	_, err = strconv.Atoi(in.DateStart)
@@ -79,8 +83,24 @@ func (s *pianoServer) GetBillingData(ctx context.Context, in *pb.ReqBillingData)
 	resBillingData.BillingType = in.BillingType
 	resBillingData.GroupID = in.GroupID
 
+	if len(*groupID) == 0 {
+		resGetGroupList, err := client.RC.GetGroupList()
+		if err != nil {
+			goto ERROR
+		}
+
+		for _, group := range resGetGroupList.Group {
+			if group.Id == 1 {
+				continue
+			}
+			groupIDAll = append(groupIDAll, group.Id)
+		}
+
+		groupID = &groupIDAll
+	}
+
 	data, err = billing.DriverBilling.ReadBillingData(
-		&(in.GroupID), in.DateStart, in.DateEnd,
+		groupID, in.DateStart, in.DateEnd,
 		in.BillingType, int(in.Row), int(in.Page))
 	if data != nil {
 		resBillingData.Result, _ = json.Marshal(*data)
@@ -91,7 +111,7 @@ func (s *pianoServer) GetBillingData(ctx context.Context, in *pb.ReqBillingData)
 		goto ERROR
 	}
 
-	count, err = dao.GetBillCount(&(in.GroupID), in.DateStart, in.DateEnd,
+	count, err = dao.GetBillCount(groupID, in.DateStart, in.DateEnd,
 		in.BillingType)
 	if err != nil {
 		goto ERROR
