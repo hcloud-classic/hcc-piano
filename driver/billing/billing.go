@@ -233,6 +233,7 @@ func (bill *Billing) ReadBillingData(groupID *[]int64, dateStart, dateEnd, billT
 		var bill model.Bill
 		_ = res.Scan(&bill.Date,
 			&bill.GroupID,
+			&bill.GroupName,
 			&bill.ChargeNode,
 			&bill.ChargeServer,
 			&bill.ChargeNetwork,
