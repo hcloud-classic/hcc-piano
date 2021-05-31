@@ -38,7 +38,7 @@ func getNetworkBillingInfo(groupList []*pb.Group) (*[]model.NetworkBill, error) 
 		}
 
 		billList = append(billList, model.NetworkBill{
-			GroupID:          int(group.Id),
+			GroupID:          group.Id,
 			ChargeSubnet:     resGetCharge.Charge.ChargeSubnetPerCnt * int64(len(resGetSubnetList.Subnet)),
 			ChargeAdaptiveIP: resGetCharge.Charge.ChargeAdaptiveIPPerCnt * int64(len(resGetAdaptiveIPServerList.AdaptiveipServer)),
 		})

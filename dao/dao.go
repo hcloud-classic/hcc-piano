@@ -154,7 +154,7 @@ func GetDailyInfo(groupList []*pb.Group,
 		var chargeVolume int64 = 0
 
 		for _, nodeBilling := range *nodeBillingList {
-			if nodeBilling.GroupID == int(group.Id) {
+			if nodeBilling.GroupID == group.Id {
 				chargeNode += nodeBilling.ChargeCPU +
 					nodeBilling.ChargeMEM +
 					nodeBilling.ChargeNIC
@@ -162,27 +162,27 @@ func GetDailyInfo(groupList []*pb.Group,
 		}
 
 		for _, serverBilling := range *serverBillingList {
-			if serverBilling.GroupID == int(group.Id) {
+			if serverBilling.GroupID == group.Id {
 				chargeServer += serverBilling.ChargeTraffic
 			}
 		}
 
 		for _, networkBilling := range *networkBillingList {
-			if networkBilling.GroupID == int(group.Id) {
+			if networkBilling.GroupID == group.Id {
 				chargeNetwork += networkBilling.ChargeSubnet +
 					networkBilling.ChargeAdaptiveIP
 			}
 		}
 
 		for _, volumeBilling := range *volumeBillingList {
-			if volumeBilling.GroupID == int(group.Id) {
+			if volumeBilling.GroupID == group.Id {
 				chargeVolume += volumeBilling.ChargeSSD +
 					volumeBilling.ChargeHDD
 			}
 		}
 
 		billList = append(billList, model.DailyBill{
-			GroupID:       int(group.Id),
+			GroupID:       group.Id,
 			ChargeNode:    chargeNode,
 			ChargeServer:  chargeServer,
 			ChargeNetwork: chargeNetwork,
@@ -220,11 +220,12 @@ func InsertDailyInfo(infoList *[]model.DailyBill) error {
 	return err
 }
 
-func GetBill(groupID int, start, end, billType string, row, page int) (*dbsql.Rows, error) {
+func GetBill(groupID *[]int64, start, end, billType string, row, page int) (*dbsql.Rows, error) {
 	var dateStart string
 	var dateEnd string
 	billType = strings.ToLower(billType)
 	sql := ""
+	var groupIDQuery string
 
 	if row == 0 || page == 0 {
 		return nil, errors.New("need row and page arguments")
@@ -247,8 +248,22 @@ func GetBill(groupID int, start, end, billType string, row, page int) (*dbsql.Ro
 		return nil, errors.New("DAO(GetBill) -> Unsupported billing type")
 	}
 
+	if len(*groupID) != 0 {
+		groupIDQuery = "AND ("
+		for i := range *groupID {
+			if i == 0 {
+				groupIDQuery += "`group_id` = " + strconv.Itoa(int((*groupID)[i]))
+				continue
+			}
+			groupIDQuery += " OR `group_id` = " + strconv.Itoa(int((*groupID)[i]))
+		}
+		groupIDQuery += ")"
+	} else {
+		groupIDQuery = ""
+	}
+
 	sql = "SELECT * FROM `piano`.`" + billType + "_bill` WHERE `date` BETWEEN '" + dateStart + "' AND '" +
-		dateEnd + "' AND `group_id` = " + strconv.Itoa(groupID) + " ORDER BY `date` DESC " +
+		dateEnd + "' " + groupIDQuery + " ORDER BY `date` DESC, `group_id` ASC " +
 		"LIMIT " + strconv.Itoa(row) + " OFFSET " + strconv.Itoa(row*(page-1)) + ";"
 
 	if config.Billing.Debug == "on" {
@@ -259,7 +274,67 @@ func GetBill(groupID int, start, end, billType string, row, page int) (*dbsql.Ro
 	return res, err
 }
 
-func GetBillInfo(groupID int, date, billType, category string) (*dbsql.Rows, error) {
+func GetBillCount(groupID *[]int64, start, end, billType string) (int, error) {
+	var billCount int
+
+	var dateStart string
+	var dateEnd string
+	billType = strings.ToLower(billType)
+	sql := ""
+	var groupIDQuery string
+
+	currentTime := time.Now()
+	yyFront := currentTime.Format("2006")[:2]
+
+	switch billType {
+	case "daily":
+		dateStart = yyFront + start[:2] + "-" + start[2:4] + "-" + start[4:6]
+		dateEnd = yyFront + end[:2] + "-" + end[2:4] + "-" + end[4:6]
+	case "monthly":
+		dateStart = yyFront + start[:2] + "-" + start[2:4]
+		dateEnd = yyFront + end[:2] + "-" + end[2:4]
+	case "yearly":
+		dateStart = yyFront + start[:2]
+		dateEnd = yyFront + end[:2]
+	default:
+		return 0, errors.New("DAO(GetBill) -> Unsupported billing type")
+	}
+
+	if len(*groupID) != 0 {
+		groupIDQuery = "AND ("
+		for i := range *groupID {
+			if i == 0 {
+				groupIDQuery += "`group_id` = " + strconv.Itoa(int((*groupID)[i]))
+				continue
+			}
+			groupIDQuery += " OR `group_id` = " + strconv.Itoa(int((*groupID)[i]))
+		}
+		groupIDQuery += ")"
+	} else {
+		groupIDQuery = ""
+	}
+
+	sql = "SELECT COUNT(*) FROM `piano`.`" + billType + "_bill` WHERE `date` BETWEEN '" + dateStart + "' AND '" +
+		dateEnd + "' " + groupIDQuery + ";"
+
+	if config.Billing.Debug == "on" {
+		logger.Logger.Println("Sending SQL Query from GetBill(): " + sql)
+	}
+	res, err := sendQuery(sql)
+	if err != nil {
+		return 0, err
+	}
+
+	res.Next()
+	err = res.Scan(&billCount)
+	if err != nil {
+		return 0, err
+	}
+
+	return billCount, nil
+}
+
+func GetBillInfo(groupID int64, date, billType, category string) (*dbsql.Rows, error) {
 	billType = strings.ToLower(billType)
 	category = strings.ToLower(category)
 	dateStart := date
@@ -293,7 +368,7 @@ func GetBillInfo(groupID int, date, billType, category string) (*dbsql.Rows, err
 		return nil, errors.New("DAO(GetBill) -> Unsupported category")
 	}
 
-	sql := "SELECT * FROM `piano`.`" + category + "_billing_info` WHERE `group_id`=" + strconv.Itoa(groupID) + " AND `date` BETWEEN DATE(" + dateStart + ") AND DATE(" + strconv.Itoa(dateEnd) + ");"
+	sql := "SELECT * FROM `piano`.`" + category + "_billing_info` WHERE `group_id`=" + strconv.Itoa(int(groupID)) + " AND `date` BETWEEN DATE(" + dateStart + ") AND DATE(" + strconv.Itoa(dateEnd) + ");"
 
 	res, err := sendQuery(sql)
 	if res != nil {

@@ -142,7 +142,7 @@ func (bill *Billing) UpdateBillingInfo() {
 	bill.IsRunning = false
 }
 
-func (bill *Billing) readNetworkBillingInfo(groupID int, date, billType string) (*[]model.NetworkBill, error) {
+func (bill *Billing) readNetworkBillingInfo(groupID int64, date, billType string) (*[]model.NetworkBill, error) {
 	var billList []model.NetworkBill
 
 	res, err := dao.GetBillInfo(groupID, date, billType, "network")
@@ -161,7 +161,7 @@ func (bill *Billing) readNetworkBillingInfo(groupID int, date, billType string) 
 	return &billList, err
 }
 
-func (bill *Billing) readNodeBillingInfo(groupID int, date, billType string) (*[]model.NodeBill, error) {
+func (bill *Billing) readNodeBillingInfo(groupID int64, date, billType string) (*[]model.NodeBill, error) {
 	var billList []model.NodeBill
 
 	res, err := dao.GetBillInfo(groupID, date, billType, "node")
@@ -182,7 +182,7 @@ func (bill *Billing) readNodeBillingInfo(groupID int, date, billType string) (*[
 	return &billList, err
 }
 
-func (bill *Billing) readServerBillingInfo(groupID int, date, billType string) (*[]model.ServerBill, error) {
+func (bill *Billing) readServerBillingInfo(groupID int64, date, billType string) (*[]model.ServerBill, error) {
 	var billList []model.ServerBill
 
 	res, err := dao.GetBillInfo(groupID, date, billType, "server")
@@ -201,7 +201,7 @@ func (bill *Billing) readServerBillingInfo(groupID int, date, billType string) (
 	return &billList, err
 }
 
-func (bill *Billing) readVolumeBillingInfo(groupID int, date, billType string) (*[]model.VolumeBill, error) {
+func (bill *Billing) readVolumeBillingInfo(groupID int64, date, billType string) (*[]model.VolumeBill, error) {
 	var billList []model.VolumeBill
 
 	res, err := dao.GetBillInfo(groupID, date, billType, "volume")
@@ -220,61 +220,41 @@ func (bill *Billing) readVolumeBillingInfo(groupID int, date, billType string) (
 	return &billList, err
 }
 
-func (bill *Billing) ReadBillingData(groupID *[]int32, dateStart, dateEnd, billType string, row, page int) (*[][]model.Bill, error) {
-	var billList [][]model.Bill
-	var groupIDAll []int32
+func (bill *Billing) ReadBillingData(groupID *[]int64, dateStart, dateEnd, billType string, row, page int) (*[]model.Bill, error) {
+	var billList []model.Bill
 
-	if len(*groupID) == 0 {
-		resGetGroupList, err := client.RC.GetGroupList()
-		if err != nil {
-			return &billList, err
-		}
-
-		for _, group := range resGetGroupList.Group {
-			if group.Id == 1 {
-				continue
-			}
-			groupIDAll = append(groupIDAll, int32(group.Id))
-		}
-
-		groupID = &groupIDAll
+	res, err := dao.GetBill(groupID, dateStart, dateEnd, billType, row, page)
+	if err != nil {
+		logger.Logger.Println("ReadBillingData(): dao.GetBill(): " + err.Error())
+		return &billList, err
 	}
 
-	for _, gid := range *groupID {
-		res, err := dao.GetBill(int(gid), dateStart, dateEnd, billType, row, page)
-		if err != nil {
-			logger.Logger.Println("ReadBillingData(): dao.GetBill(): " + err.Error())
-			return &billList, err
-		}
-		var list []model.Bill
-		for res.Next() {
-			bill := model.Bill{}
-			_ = res.Scan(&bill.Date,
-				&bill.GroupID,
-				&bill.ChargeNode,
-				&bill.ChargeServer,
-				&bill.ChargeNetwork,
-				&bill.ChargeVolume)
-			list = append(list, bill)
-		}
-		billList = append(billList, list)
-		_ = res.Close()
+	for res.Next() {
+		var bill model.Bill
+		_ = res.Scan(&bill.Date,
+			&bill.GroupID,
+			&bill.GroupName,
+			&bill.ChargeNode,
+			&bill.ChargeServer,
+			&bill.ChargeNetwork,
+			&bill.ChargeVolume)
+		billList = append(billList, bill)
 	}
 
 	return &billList, nil
 }
 
-func (bill *Billing) ReadBillingDetail(groupID int32, date, billType string) (*model.BillDetail, error) {
+func (bill *Billing) ReadBillingDetail(groupID int64, date, billType string) (*model.BillDetail, error) {
 	var err error
 	var returnErr error = nil
 	var billingDetail model.BillDetail
 
-	billingDetail.DetailNode, err = bill.readNodeBillingInfo(int(groupID), date, billType)
+	billingDetail.DetailNode, err = bill.readNodeBillingInfo(groupID, date, billType)
 	if err != nil {
 		logger.Logger.Println("ReadBillingDetail(): bill.readNodeBillingInfo(): " + err.Error())
 		returnErr = errors.New(err.Error())
 	}
-	billingDetail.DetailServer, err = bill.readServerBillingInfo(int(groupID), date, billType)
+	billingDetail.DetailServer, err = bill.readServerBillingInfo(groupID, date, billType)
 	if err != nil {
 		logger.Logger.Println("ReadBillingDetail(): bill.readServerBillingInfo(): " + err.Error())
 		if returnErr == nil {
@@ -282,7 +262,7 @@ func (bill *Billing) ReadBillingDetail(groupID int32, date, billType string) (*m
 		}
 		returnErr = errors.New(returnErr.Error() + "\n" + err.Error())
 	}
-	billingDetail.DetailNetwork, err = bill.readNetworkBillingInfo(int(groupID), date, billType)
+	billingDetail.DetailNetwork, err = bill.readNetworkBillingInfo(groupID, date, billType)
 	if err != nil {
 		logger.Logger.Println("ReadBillingDetail(): bill.readNetworkBillingInfo(): " + err.Error())
 		if returnErr == nil {
@@ -290,7 +270,7 @@ func (bill *Billing) ReadBillingDetail(groupID int32, date, billType string) (*m
 		}
 		returnErr = errors.New(returnErr.Error() + "\n" + err.Error())
 	}
-	billingDetail.DetailVolume, err = bill.readVolumeBillingInfo(int(groupID), date, billType)
+	billingDetail.DetailVolume, err = bill.readVolumeBillingInfo(groupID, date, billType)
 	if err != nil {
 		logger.Logger.Println("ReadBillingDetail(): bill.readVolumeBillingInfo(): " + err.Error())
 		if returnErr == nil {
