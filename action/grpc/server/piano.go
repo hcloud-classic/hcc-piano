@@ -30,7 +30,7 @@ func (s *pianoServer) GetBillingData(ctx context.Context, in *pb.ReqBillingData)
 
 	var resBillingData = pb.ResBillingData{
 		BillingType:   "UNDEFINED",
-		GroupID:       []int32{},
+		GroupID:       []int64{},
 		Result:        nil,
 		HccErrorStack: nil,
 	}
@@ -108,7 +108,7 @@ WrongEndDate:
 func (s *pianoServer) GetBillingDetail(ctx context.Context, in *pb.ReqBillingData) (*pb.ResBillingData, error) {
 	var resBillingDetail = pb.ResBillingData{
 		BillingType:   "UNDEFINED",
-		GroupID:       []int32{},
+		GroupID:       []int64{},
 		Result:        nil,
 		HccErrorStack: nil,
 	}

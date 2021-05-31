@@ -154,7 +154,7 @@ func GetDailyInfo(groupList []*pb.Group,
 		var chargeVolume int64 = 0
 
 		for _, nodeBilling := range *nodeBillingList {
-			if nodeBilling.GroupID == int(group.Id) {
+			if nodeBilling.GroupID == group.Id {
 				chargeNode += nodeBilling.ChargeCPU +
 					nodeBilling.ChargeMEM +
 					nodeBilling.ChargeNIC
@@ -162,27 +162,27 @@ func GetDailyInfo(groupList []*pb.Group,
 		}
 
 		for _, serverBilling := range *serverBillingList {
-			if serverBilling.GroupID == int(group.Id) {
+			if serverBilling.GroupID == group.Id {
 				chargeServer += serverBilling.ChargeTraffic
 			}
 		}
 
 		for _, networkBilling := range *networkBillingList {
-			if networkBilling.GroupID == int(group.Id) {
+			if networkBilling.GroupID == group.Id {
 				chargeNetwork += networkBilling.ChargeSubnet +
 					networkBilling.ChargeAdaptiveIP
 			}
 		}
 
 		for _, volumeBilling := range *volumeBillingList {
-			if volumeBilling.GroupID == int(group.Id) {
+			if volumeBilling.GroupID == group.Id {
 				chargeVolume += volumeBilling.ChargeSSD +
 					volumeBilling.ChargeHDD
 			}
 		}
 
 		billList = append(billList, model.DailyBill{
-			GroupID:       int(group.Id),
+			GroupID:       group.Id,
 			ChargeNode:    chargeNode,
 			ChargeServer:  chargeServer,
 			ChargeNetwork: chargeNetwork,
@@ -259,7 +259,7 @@ func GetBill(groupID int, start, end, billType string, row, page int) (*dbsql.Ro
 	return res, err
 }
 
-func GetBillInfo(groupID int, date, billType, category string) (*dbsql.Rows, error) {
+func GetBillInfo(groupID int64, date, billType, category string) (*dbsql.Rows, error) {
 	billType = strings.ToLower(billType)
 	category = strings.ToLower(category)
 	dateStart := date
@@ -293,7 +293,7 @@ func GetBillInfo(groupID int, date, billType, category string) (*dbsql.Rows, err
 		return nil, errors.New("DAO(GetBill) -> Unsupported category")
 	}
 
-	sql := "SELECT * FROM `piano`.`" + category + "_billing_info` WHERE `group_id`=" + strconv.Itoa(groupID) + " AND `date` BETWEEN DATE(" + dateStart + ") AND DATE(" + strconv.Itoa(dateEnd) + ");"
+	sql := "SELECT * FROM `piano`.`" + category + "_billing_info` WHERE `group_id`=" + strconv.Itoa(int(groupID)) + " AND `date` BETWEEN DATE(" + dateStart + ") AND DATE(" + strconv.Itoa(dateEnd) + ");"
 
 	res, err := sendQuery(sql)
 	if res != nil {

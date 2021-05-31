@@ -78,7 +78,7 @@ func getNodeBillingInfo(groupList []*pb.Group) (*[]model.NodeBill, error) {
 			}
 
 			billList = append(billList, model.NodeBill{
-				GroupID:   int(group.Id),
+				GroupID:   group.Id,
 				NodeUUID:  node.UUID,
 				ChargeCPU: chargeCPU,
 				ChargeMEM: chargeMEM,

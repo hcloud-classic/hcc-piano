@@ -61,7 +61,7 @@ func getVolumeBillingInfo(groupList []*pb.Group) (*[]model.VolumeBill, error) {
 		}
 
 		billList = append(billList, model.VolumeBill{
-			GroupID:   int(group.Id),
+			GroupID:   group.Id,
 			ChargeSSD: resGetCharge.Charge.ChargeSSDPerGB * int64(ssdGBTotal),
 			ChargeHDD: resGetCharge.Charge.ChargeHDDPerGB * int64(hddGBTotal),
 		})

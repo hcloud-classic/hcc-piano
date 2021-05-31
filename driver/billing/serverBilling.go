@@ -39,7 +39,7 @@ func getServerBillingInfo(groupList []*pb.Group) (*[]model.ServerBill, error) {
 			trafficTotalKB := resGetTraffic.Traffic.TxKB + resGetTraffic.Traffic.RxKB
 
 			billList = append(billList, model.ServerBill{
-				GroupID:       int(group.Id),
+				GroupID:       group.Id,
 				ServerUUID:    adaptiveipServer.ServerUUID,
 				ChargeTraffic: int64(resGetCharge.Charge.ChargeTrafficPerKB * float32(trafficTotalKB)),
 			})

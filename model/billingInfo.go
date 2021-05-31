@@ -2,7 +2,7 @@ package model
 
 type Bill struct {
 	Date          string `json:"date"`
-	GroupID       uint64 `json:"group_id"`
+	GroupID       int64  `json:"group_id"`
 	ChargeNode    int64  `json:"charge_node"`
 	ChargeServer  int64  `json:"charge_server"`
 	ChargeNetwork int64  `json:"charge_network"`
@@ -10,13 +10,13 @@ type Bill struct {
 }
 
 type NetworkBill struct {
-	GroupID          int   `json:"group_id"`
+	GroupID          int64 `json:"group_id"`
 	ChargeSubnet     int64 `json:"charge_subnet"`
 	ChargeAdaptiveIP int64 `json:"charge_adaptive_ip"`
 }
 
 type NodeBill struct {
-	GroupID   int    `json:"group_id"`
+	GroupID   int64  `json:"group_id"`
 	NodeUUID  string `json:"node_uuid"`
 	ChargeCPU int64  `json:"charge_cpu"`
 	ChargeMEM int64  `json:"charge_memory"`
@@ -24,13 +24,13 @@ type NodeBill struct {
 }
 
 type ServerBill struct {
-	GroupID       int    `json:"group_id"`
+	GroupID       int64  `json:"group_id"`
 	ServerUUID    string `json:"server_uuid"`
 	ChargeTraffic int64  `json:"charge_traffic"`
 }
 
 type VolumeBill struct {
-	GroupID   int    `json:"group_id"`
+	GroupID   int64  `json:"group_id"`
 	Date      string `json:"date"`
 	ChargeSSD int64  `json:"charge_ssd"`
 	ChargeHDD int64  `json:"charge_hdd"`
@@ -38,7 +38,7 @@ type VolumeBill struct {
 
 type DailyBill struct {
 	Date          string `json:"date"`
-	GroupID       int    `json:"group_id"`
+	GroupID       int64  `json:"group_id"`
 	ChargeNode    int64  `json:"charge_node"`
 	ChargeServer  int64  `json:"charge_server"`
 	ChargeNetwork int64  `json:"charge_network"`
