@@ -143,6 +143,19 @@ func GetDailyInfo(groupList []*pb.Group,
 	volumeBillingList *[]model.VolumeBill) *[]model.DailyBill {
 	var billList []model.DailyBill
 
+	if nodeBillingList == nil {
+		nodeBillingList = &[]model.NodeBill{}
+	}
+	if serverBillingList == nil {
+		serverBillingList = &[]model.ServerBill{}
+	}
+	if networkBillingList == nil {
+		networkBillingList = &[]model.NetworkBill{}
+	}
+	if volumeBillingList == nil {
+		volumeBillingList = &[]model.VolumeBill{}
+	}
+
 	for _, group := range groupList {
 		if group.Id == 1 {
 			continue
@@ -318,7 +331,7 @@ func GetBillCount(groupID *[]int64, start, end, billType string) (int, error) {
 		dateEnd + "' " + groupIDQuery + ";"
 
 	if config.Billing.Debug == "on" {
-		logger.Logger.Println("Sending SQL Query from GetBill(): " + sql)
+		logger.Logger.Println("Sending SQL Query from GetBillCount(): " + sql)
 	}
 	res, err := sendQuery(sql)
 	if err != nil {
@@ -337,43 +350,46 @@ func GetBillCount(groupID *[]int64, start, end, billType string) (int, error) {
 func GetBillInfo(groupID int64, date, billType, category string) (*dbsql.Rows, error) {
 	billType = strings.ToLower(billType)
 	category = strings.ToLower(category)
-	dateStart := date
-	dateEnd, _ := strconv.Atoi(date)
+	var prefix string
+
+	currentTime := time.Now()
+	yyFront := currentTime.Format("2006")[:2]
 
 	switch billType {
 	case "daily":
-		break
+		date = yyFront + date[:2] + "-" + date[2:4] + "-" + date[4:6]
 	case "monthly":
-		dateEnd += 100
-		if dateEnd%10000 > 12 {
-			dateEnd += 10000
-			dateEnd -= 100
-		}
+		date = yyFront + date[:2] + "-" + date[2:4]
 	case "yearly":
-		dateEnd += 10000
+		date = yyFront + date[:2]
 	default:
 		return nil, errors.New("DAO(GetBill) -> Unsupported billing type")
 	}
 
+	prefix = billType + "_" + category
+
 	switch category {
-	case "network":
-		fallthrough
-	case "server":
-		fallthrough
 	case "node":
 		fallthrough
+	case "server":
+		break
+	case "network":
+		fallthrough
 	case "volume":
+		if billType == "daily" {
+			prefix = category
+		}
 		break
 	default:
 		return nil, errors.New("DAO(GetBill) -> Unsupported category")
 	}
 
-	sql := "SELECT * FROM `piano`.`" + category + "_billing_info` WHERE `group_id`=" + strconv.Itoa(int(groupID)) + " AND `date` BETWEEN DATE(" + dateStart + ") AND DATE(" + strconv.Itoa(dateEnd) + ");"
+	sql := "SELECT * FROM `piano`.`" + prefix + "_billing_info` WHERE `group_id`=" + strconv.Itoa(int(groupID)) + " AND `date`='" + date + "';"
 
-	res, err := sendQuery(sql)
-	if res != nil {
-		_ = res.Close()
+	if config.Billing.Debug == "on" {
+		logger.Logger.Println("Sending SQL Query from GetBillInfo(): " + sql)
 	}
+	res, err := sendQuery(sql)
 
 	return res, err
 }

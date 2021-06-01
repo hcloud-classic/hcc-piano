@@ -2,7 +2,11 @@ package billing
 
 import (
 	"errors"
+	"fmt"
 	"hcc/piano/lib/config"
+	"innogrid.com/hcloud-classic/pb"
+	"strconv"
+	"strings"
 	"time"
 
 	"hcc/piano/action/grpc/client"
@@ -142,82 +146,353 @@ func (bill *Billing) UpdateBillingInfo() {
 	bill.IsRunning = false
 }
 
-func (bill *Billing) readNetworkBillingInfo(groupID int64, date, billType string) (*[]model.NetworkBill, error) {
-	var billList []model.NetworkBill
+func calcNicSpeed(nicSpeedMbps int32) string {
+	var nicSpeed = "error"
 
-	res, err := dao.GetBillInfo(groupID, date, billType, "network")
-	if err != nil {
-		return nil, err
+	switch nicSpeedMbps {
+	case 10:
+		nicSpeed = "10Mbps"
+	case 100:
+		nicSpeed = "100Mbps"
+	case 1000:
+		nicSpeed = "1Gbps"
+	case 2500:
+		nicSpeed = "2.5Gbps"
+	case 5000:
+		nicSpeed = "5Gbps"
+	case 10000:
+		nicSpeed = "10Gbps"
+	case 20000:
+		nicSpeed = "20Gbps"
+	case 40000:
+		nicSpeed = "40Gbps"
 	}
 
-	for res.Next() {
-		var billInfo model.NetworkBill
-		_ = res.Scan(&billInfo.GroupID,
-			&billInfo.ChargeSubnet,
-			&billInfo.ChargeAdaptiveIP)
-		billList = append(billList, billInfo)
-	}
-
-	return &billList, err
+	return nicSpeed
 }
 
-func (bill *Billing) readNodeBillingInfo(groupID int64, date, billType string) (*[]model.NodeBill, error) {
-	var billList []model.NodeBill
+func calcNodeUptime(uptimeMs int64) string {
+	var uptimeSec = 0
+	var uptimeMin = 0
+	var uptimeHour = 0
+	var uptimeDay = 0
+	var uptimeStr = ""
+
+	if uptimeMs >= 1000 {
+		uptimeSec = int(uptimeMs / int64(1000))
+	} else {
+		return strconv.Itoa(int(uptimeMs)) + "ms"
+	}
+	if uptimeSec >= 60 {
+		uptimeMin = uptimeSec / 60
+		uptimeSec = uptimeSec % 60
+	}
+	if uptimeMin >= 60 {
+		uptimeHour = uptimeMin / 60
+		uptimeMin = uptimeMin % 60
+	}
+	if uptimeHour >= 24 {
+		uptimeDay = uptimeHour / 24
+		uptimeHour = uptimeHour % 24
+	}
+
+	if uptimeDay > 0 {
+		uptimeStr = strconv.Itoa(uptimeDay) + "d"
+	}
+	if uptimeHour > 0 {
+		if uptimeDay > 0 {
+			uptimeStr += " "
+		}
+		uptimeStr = uptimeStr + strconv.Itoa(uptimeHour) + "h"
+	}
+	if uptimeMin > 0 {
+		if uptimeDay > 0 || uptimeHour > 0 {
+			uptimeStr += " "
+		}
+		uptimeStr = uptimeStr + strconv.Itoa(uptimeMin) + "m"
+	}
+	if uptimeSec > 0 {
+		if uptimeDay > 0 || uptimeHour > 0 || uptimeMin > 0 {
+			uptimeStr += " "
+		}
+		uptimeStr = uptimeStr + strconv.Itoa(uptimeSec) + "s"
+	}
+
+	return uptimeStr
+}
+
+func (bill *Billing) readNodeBillingInfo(groupID int64, date, billType string) (*[]model.DetailNode, error) {
+	var detailNodes []model.DetailNode
+	var uptimeMS int64
 
 	res, err := dao.GetBillInfo(groupID, date, billType, "node")
 	if err != nil {
 		return nil, err
 	}
+	defer func() {
+		_ = res.Close()
+	}()
 
 	for res.Next() {
-		var billInfo model.NodeBill
-		_ = res.Scan(&billInfo.GroupID,
-			&billInfo.NodeUUID,
-			&billInfo.ChargeCPU,
-			&billInfo.ChargeMEM,
-			&billInfo.ChargeNIC)
-		billList = append(billList, billInfo)
+		var detailNode model.DetailNode
+
+		_ = res.Scan(&detailNode.NodeBill.GroupID,
+			&detailNode.NodeBill.Date,
+			&detailNode.NodeBill.NodeUUID,
+			&detailNode.NodeBill.ChargeCPU,
+			&detailNode.NodeBill.ChargeMEM,
+			&detailNode.NodeBill.ChargeNIC,
+			&uptimeMS)
+
+		resGetNode, err := client.RC.GetNode(detailNode.NodeBill.NodeUUID)
+		if err != nil {
+			return nil, err
+		}
+
+		detailNode.Node = model.Node{
+			UUID:     resGetNode.Node.UUID,
+			CPUCores: int(resGetNode.Node.CPUCores),
+			Memory:   int(resGetNode.Node.Memory),
+			NICSpeed: calcNicSpeed(resGetNode.Node.NicSpeedMbps),
+			Uptime:   calcNodeUptime(uptimeMS),
+		}
+
+		detailNodes = append(detailNodes, detailNode)
 	}
 
-	return &billList, err
+	return &detailNodes, err
 }
 
-func (bill *Billing) readServerBillingInfo(groupID int64, date, billType string) (*[]model.ServerBill, error) {
-	var billList []model.ServerBill
+func calcTraffic(trafficKB int64) string {
+	if trafficKB > 999 {
+		dot := trafficKB % 1024
+		resultMB := float32(trafficKB) / 1024
+		if resultMB > 999 {
+			resultGB := resultMB / 1024
+			if resultGB > 999 {
+				resultTB := resultGB / 1024
+				if dot != 0 {
+					return fmt.Sprintf("%.2f", resultTB) + "TB"
+				}
+
+				return strconv.Itoa(int(resultTB)) + "TB"
+			}
+			if dot != 0 {
+				return fmt.Sprintf("%.2f", resultGB) + "GB"
+			}
+
+			return strconv.Itoa(int(resultGB)) + "GB"
+		}
+		if dot != 0 {
+			return fmt.Sprintf("%.2f", resultMB) + "MB"
+		}
+
+		return strconv.Itoa(int(resultMB)) + "MB"
+	}
+
+	return strconv.Itoa(int(trafficKB)) + "KB"
+}
+
+func (bill *Billing) readServerBillingInfo(groupID int64, date, billType string) (*[]model.DetailServer, error) {
+	var detailServers []model.DetailServer
+	var trafficKB int64
 
 	res, err := dao.GetBillInfo(groupID, date, billType, "server")
 	if err != nil {
 		return nil, err
 	}
+	defer func() {
+		_ = res.Close()
+	}()
 
 	for res.Next() {
-		var billInfo model.ServerBill
-		_ = res.Scan(&billInfo.GroupID,
-			&billInfo.ServerUUID,
-			&billInfo.ChargeTraffic)
-		billList = append(billList, billInfo)
+		var detailServer model.DetailServer
+
+		_ = res.Scan(&detailServer.ServerBill.GroupID,
+			&detailServer.ServerBill.Date,
+			&detailServer.ServerBill.ServerUUID,
+			&detailServer.ServerBill.ChargeTraffic,
+			&trafficKB)
+
+		resGetServer, err := client.RC.GetServer(detailServer.ServerBill.ServerUUID)
+		if err != nil {
+			return nil, err
+		}
+
+		detailServer.Server = model.Server{
+			Name:           resGetServer.Server.ServerName,
+			NetworkTraffic: calcTraffic(trafficKB),
+		}
+
+		detailServers = append(detailServers, detailServer)
 	}
 
-	return &billList, err
+	return &detailServers, err
 }
 
-func (bill *Billing) readVolumeBillingInfo(groupID int64, date, billType string) (*[]model.VolumeBill, error) {
-	var billList []model.VolumeBill
+func (bill *Billing) readVolumeBillingInfo(groupID int64, date, billType string) (*model.DetailVolume, error) {
+	var detailVolume model.DetailVolume
+	var volumes []model.Volume
 
 	res, err := dao.GetBillInfo(groupID, date, billType, "volume")
 	if err != nil {
 		return nil, err
 	}
+	defer func() {
+		_ = res.Close()
+	}()
 
-	for res.Next() {
-		var billInfo model.VolumeBill
-		_ = res.Scan(&billInfo.GroupID,
-			&billInfo.ChargeSSD,
-			&billInfo.ChargeHDD)
-		billList = append(billList, billInfo)
+	resGetCharge, err := client.RC.GetCharge(groupID)
+	if err != nil {
+		return nil, err
 	}
 
-	return &billList, err
+	for res.Next() {
+		_ = res.Scan(&detailVolume.VolumeBill.GroupID,
+			&detailVolume.VolumeBill.Date,
+			&detailVolume.VolumeBill.ChargeSSD,
+			&detailVolume.VolumeBill.ChargeHDD)
+
+		resGetServerList, err := client.RC.GetServerList(&pb.ReqGetServerList{
+			Server: &pb.Server{
+				GroupID: groupID,
+			},
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		for _, server := range resGetServerList.Server {
+			resGetVolumeList, err := client.RC.GetVolumeList(&pb.ReqGetVolumeList{
+				Volume: &pb.Volume{
+					Action:     "read_list",
+					ServerUUID: server.UUID,
+				},
+				// TODO : Should be control row and page later?
+				Row:  10,
+				Page: 1,
+			})
+			if err != nil {
+				return nil, err
+			}
+
+			for _, volume := range resGetVolumeList.Volume {
+				useType := strings.ToLower(volume.UseType)
+				size, _ := strconv.Atoi(volume.Size)
+
+				// TODO : Should it be change to identify SSD or HDD later?
+				var diskType string
+				var cost int64
+				if useType == "os" {
+					diskType = "SSD"
+					cost = resGetCharge.Charge.ChargeSSDPerGB * int64(size)
+				} else if useType == "data" {
+					diskType = "HDD"
+					cost = resGetCharge.Charge.ChargeHDDPerGB * int64(size)
+				}
+
+				volume := model.Volume{
+					UUID:      volume.UUID,
+					Pool:      volume.Pool,
+					UsageType: volume.UseType,
+					DiskType:  diskType,
+					DiskSize:  size,
+					Cost:      cost,
+				}
+
+				volumes = append(volumes, volume)
+			}
+		}
+	}
+
+	detailVolume.Volumes = volumes
+
+	return &detailVolume, err
+}
+
+func (bill *Billing) readNetworkBillingInfo(groupID int64, date, billType string) (*model.DetailNetwork, error) {
+	var detailNetwork model.DetailNetwork
+	var subnets []model.Subnet
+	var adaptiveIPs []model.AdaptiveIP
+
+	res, err := dao.GetBillInfo(groupID, date, billType, "network")
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		_ = res.Close()
+	}()
+
+	resGetCharge, err := client.RC.GetCharge(groupID)
+	if err != nil {
+		return nil, err
+	}
+
+	for res.Next() {
+		_ = res.Scan(&detailNetwork.NetworkBill.GroupID,
+			&detailNetwork.NetworkBill.Date,
+			&detailNetwork.NetworkBill.ChargeSubnet,
+			&detailNetwork.NetworkBill.ChargeAdaptiveIP)
+
+		resGetServerList, err := client.RC.GetServerList(&pb.ReqGetServerList{
+			Server: &pb.Server{
+				GroupID: groupID,
+			},
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		for _, server := range resGetServerList.Server {
+
+			resGetSubnetList, err := client.RC.GetSubnetList(&pb.ReqGetSubnetList{
+				Subnet: &pb.Subnet{
+					ServerUUID: server.UUID,
+				},
+			})
+			if err != nil {
+				return nil, err
+			}
+
+			for _, subnet := range resGetSubnetList.Subnet {
+				subnet := model.Subnet{
+					SubnetName: subnet.SubnetName,
+					DomainName: subnet.DomainName,
+					NetworkIP:  subnet.NetworkIP,
+					GatewayIP:  subnet.Gateway,
+					Cost:       resGetCharge.Charge.ChargeSubnetPerCnt,
+				}
+
+				subnets = append(subnets, subnet)
+			}
+
+			resGetAdaptiveIPServerList, err := client.RC.GetAdaptiveIPServerList(&pb.ReqGetAdaptiveIPServerList{
+				AdaptiveipServer: &pb.AdaptiveIPServer{
+					ServerUUID: server.UUID,
+				},
+			})
+			if err != nil {
+				return nil, err
+			}
+
+			for _, adaptiveIP := range resGetAdaptiveIPServerList.AdaptiveipServer {
+				adaptiveIP := model.AdaptiveIP{
+					ServerName:     server.ServerName,
+					PublicIP:       adaptiveIP.PublicIP,
+					PrivateIP:      adaptiveIP.PrivateIP,
+					PrivateGateway: adaptiveIP.PrivateGateway,
+					Cost: resGetCharge.Charge.ChargeAdaptiveIPPerCnt,
+				}
+
+				adaptiveIPs = append(adaptiveIPs, adaptiveIP)
+			}
+		}
+	}
+
+	detailNetwork.Subnets = subnets
+	detailNetwork.AdaptiveIPs = adaptiveIPs
+
+	return &detailNetwork, err
 }
 
 func (bill *Billing) ReadBillingData(groupID *[]int64, dateStart, dateEnd, billType string, row, page int) (*[]model.Bill, error) {
@@ -228,6 +503,9 @@ func (bill *Billing) ReadBillingData(groupID *[]int64, dateStart, dateEnd, billT
 		logger.Logger.Println("ReadBillingData(): dao.GetBill(): " + err.Error())
 		return &billList, err
 	}
+	defer func() {
+		_ = res.Close()
+	}()
 
 	for res.Next() {
 		var bill model.Bill
@@ -254,6 +532,7 @@ func (bill *Billing) ReadBillingDetail(groupID int64, date, billType string) (*m
 		logger.Logger.Println("ReadBillingDetail(): bill.readNodeBillingInfo(): " + err.Error())
 		returnErr = errors.New(err.Error())
 	}
+
 	billingDetail.DetailServer, err = bill.readServerBillingInfo(groupID, date, billType)
 	if err != nil {
 		logger.Logger.Println("ReadBillingDetail(): bill.readServerBillingInfo(): " + err.Error())
@@ -262,17 +541,19 @@ func (bill *Billing) ReadBillingDetail(groupID int64, date, billType string) (*m
 		}
 		returnErr = errors.New(returnErr.Error() + "\n" + err.Error())
 	}
-	billingDetail.DetailNetwork, err = bill.readNetworkBillingInfo(groupID, date, billType)
+
+	billingDetail.DetailVolume, err = bill.readVolumeBillingInfo(groupID, date, billType)
 	if err != nil {
-		logger.Logger.Println("ReadBillingDetail(): bill.readNetworkBillingInfo(): " + err.Error())
+		logger.Logger.Println("ReadBillingDetail(): bill.readVolumeBillingInfo(): " + err.Error())
 		if returnErr == nil {
 			returnErr = errors.New("")
 		}
 		returnErr = errors.New(returnErr.Error() + "\n" + err.Error())
 	}
-	billingDetail.DetailVolume, err = bill.readVolumeBillingInfo(groupID, date, billType)
+
+	billingDetail.DetailNetwork, err = bill.readNetworkBillingInfo(groupID, date, billType)
 	if err != nil {
-		logger.Logger.Println("ReadBillingDetail(): bill.readVolumeBillingInfo(): " + err.Error())
+		logger.Logger.Println("ReadBillingDetail(): bill.readNetworkBillingInfo(): " + err.Error())
 		if returnErr == nil {
 			returnErr = errors.New("")
 		}

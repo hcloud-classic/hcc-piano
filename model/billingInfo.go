@@ -2,6 +2,7 @@ package model
 
 type NodeBill struct {
 	GroupID   int64  `json:"group_id"`
+	Date      string `json:"date"`
 	NodeUUID  string `json:"node_uuid"`
 	ChargeCPU int64  `json:"charge_cpu"`
 	ChargeMEM int64  `json:"charge_memory"`
@@ -10,14 +11,16 @@ type NodeBill struct {
 
 type ServerBill struct {
 	GroupID       int64  `json:"group_id"`
+	Date          string `json:"date"`
 	ServerUUID    string `json:"server_uuid"`
 	ChargeTraffic int64  `json:"charge_traffic"`
 }
 
 type NetworkBill struct {
-	GroupID          int64 `json:"group_id"`
-	ChargeSubnet     int64 `json:"charge_subnet"`
-	ChargeAdaptiveIP int64 `json:"charge_adaptive_ip"`
+	GroupID          int64  `json:"group_id"`
+	Date             string `json:"date"`
+	ChargeSubnet     int64  `json:"charge_subnet"`
+	ChargeAdaptiveIP int64  `json:"charge_adaptive_ip"`
 }
 
 type VolumeBill struct {
@@ -51,7 +54,7 @@ type Node struct {
 	CPUCores int    `json:"cpu_cores"`
 	Memory   int    `json:"memory"`
 	NICSpeed string `json:"nic_speed"`
-	Uptime   int64  `json:"uptime"`
+	Uptime   string `json:"uptime"`
 }
 
 type DetailNode struct {
@@ -75,19 +78,42 @@ type Volume struct {
 	UsageType string `json:"usage_type"`
 	DiskType  string `json:"disk_type"`
 	DiskSize  int    `json:"disk_size"`
+	Cost      int64  `json:"cost"`
 }
 
 type DetailVolume struct {
-	Volume     Volume     `json:"volume"`
+	Volumes    []Volume   `json:"volumes"`
 	VolumeBill VolumeBill `json:"volume_bill"`
 }
 
+type Subnet struct {
+	SubnetName string `json:"subnet_name"`
+	DomainName string `json:"domain_name"`
+	NetworkIP  string `json:"network_ip"`
+	GatewayIP  string `json:"gateway_ip"`
+	Cost       int64  `json:"cost"`
+}
+
+type AdaptiveIP struct {
+	ServerName     string `json:"server_name"`
+	PublicIP       string `json:"public_ip"`
+	PrivateIP      string `json:"private_ip"`
+	PrivateGateway string `json:"private_gateway"`
+	Cost           int64  `json:"cost"`
+}
+
+type DetailNetwork struct {
+	Subnets     []Subnet     `json:"subnet"`
+	AdaptiveIPs []AdaptiveIP `json:"adaptive_ip"`
+	NetworkBill NetworkBill  `json:"network_bill"`
+}
+
 type BillDetail struct {
-	Date          int            `json:"date"`
-	GroupID       int64          `json:"group_id"`
-	GroupName     string         `json:"group_name"`
-	DetailNode    *[]NodeBill    `json:"detail_node"`
-	DetailServer  *[]ServerBill  `json:"detail_server"`
-	DetailNetwork *[]NetworkBill `json:"detail_network"`
-	DetailVolume  *[]VolumeBill  `json:"detail_volume"`
+	Date          int             `json:"date"`
+	GroupID       int64           `json:"group_id"`
+	GroupName     string          `json:"group_name"`
+	DetailNode    *[]DetailNode   `json:"detail_node"`
+	DetailServer  *[]DetailServer `json:"detail_server"`
+	DetailVolume  *DetailVolume   `json:"detail_volume"`
+	DetailNetwork *DetailNetwork  `json:"detail_network"`
 }
