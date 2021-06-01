@@ -171,51 +171,54 @@ func calcNicSpeed(nicSpeedMbps int32) string {
 	return nicSpeed
 }
 
-func calcNodeUptime(uptimeMS int64) string {
-	if uptimeMS > 1000 {
-		uptimeSec := uptimeMS / 1000
-		if uptimeSec > 60 {
-			uptimeMin := uptimeSec / 60
-			uptimeMinSec := uptimeSec % 60
+func calcNodeUptime(uptimeMs int64) string {
+	var uptimeSec = 0
+	var uptimeMin = 0
+	var uptimeHour = 0
+	var uptimeDay = 0
+	var uptimeStr = ""
 
-			if uptimeMin > 60 {
-				uptimeHour := uptimeMin / 60
-				uptimeHourMin := uptimeMin % 60
-
-				if uptimeHourMin > 0 {
-					if uptimeSec > 3600 {
-						uptimeHourMinSec := uptimeSec % 3600
-
-						return strconv.Itoa(int(uptimeHour)) + "h " +
-							strconv.Itoa(int(uptimeHourMin)) + "m " +
-							strconv.Itoa(int(uptimeHourMinSec)) + "s"
-					}
-
-					return strconv.Itoa(int(uptimeHour)) + "h " +
-						strconv.Itoa(int(uptimeHourMin)) + "m"
-				}
-
-				if uptimeSec > 3600 {
-					uptimeHourSec := uptimeSec % 3600
-
-					return strconv.Itoa(int(uptimeHour)) + "h " + strconv.Itoa(int(uptimeHourSec)) + "s"
-				}
-
-				return strconv.Itoa(int(uptimeHour)) + "h"
-			}
-
-			if uptimeMinSec > 0 {
-				return strconv.Itoa(int(uptimeMin)) + "m " +
-					strconv.Itoa(int(uptimeMinSec)) + "s"
-			}
-
-			return strconv.Itoa(int(uptimeMin)) + "m"
-		}
-
-		return strconv.Itoa(int(uptimeSec)) + "s"
+	if uptimeMs >= 1000 {
+		uptimeSec = int(uptimeMs / int64(1000))
+	} else {
+		return strconv.Itoa(int(uptimeMs)) + "ms"
+	}
+	if uptimeSec >= 60 {
+		uptimeMin = uptimeSec / 60
+		uptimeSec = uptimeSec % 60
+	}
+	if uptimeMin >= 60 {
+		uptimeHour = uptimeMin / 60
+		uptimeMin = uptimeMin % 60
+	}
+	if uptimeHour >= 24 {
+		uptimeDay = uptimeHour / 24
+		uptimeHour = uptimeHour % 24
 	}
 
-	return strconv.Itoa(int(uptimeMS)) + "ms"
+	if uptimeDay > 0 {
+		uptimeStr = strconv.Itoa(uptimeDay) + "d"
+	}
+	if uptimeHour > 0 {
+		if uptimeDay > 0 {
+			uptimeStr += " "
+		}
+		uptimeStr = uptimeStr + strconv.Itoa(uptimeHour) + "h"
+	}
+	if uptimeMin > 0 {
+		if uptimeDay > 0 || uptimeHour > 0 {
+			uptimeStr += " "
+		}
+		uptimeStr = uptimeStr + strconv.Itoa(uptimeMin) + "m"
+	}
+	if uptimeSec > 0 {
+		if uptimeDay > 0 || uptimeHour > 0 || uptimeMin > 0 {
+			uptimeStr += " "
+		}
+		uptimeStr = uptimeStr + strconv.Itoa(uptimeSec) + "s"
+	}
+
+	return uptimeStr
 }
 
 func (bill *Billing) readNodeBillingInfo(groupID int64, date, billType string) (*[]model.DetailNode, error) {
@@ -226,11 +229,15 @@ func (bill *Billing) readNodeBillingInfo(groupID int64, date, billType string) (
 	if err != nil {
 		return nil, err
 	}
+	defer func() {
+		_ = res.Close()
+	}()
 
 	for res.Next() {
 		var detailNode model.DetailNode
 
 		_ = res.Scan(&detailNode.NodeBill.GroupID,
+			&detailNode.NodeBill.Date,
 			&detailNode.NodeBill.NodeUUID,
 			&detailNode.NodeBill.ChargeCPU,
 			&detailNode.NodeBill.ChargeMEM,
@@ -294,11 +301,15 @@ func (bill *Billing) readServerBillingInfo(groupID int64, date, billType string)
 	if err != nil {
 		return nil, err
 	}
+	defer func() {
+		_ = res.Close()
+	}()
 
 	for res.Next() {
 		var detailServer model.DetailServer
 
 		_ = res.Scan(&detailServer.ServerBill.GroupID,
+			&detailServer.ServerBill.Date,
 			&detailServer.ServerBill.ServerUUID,
 			&detailServer.ServerBill.ChargeTraffic,
 			&trafficKB)
@@ -327,6 +338,9 @@ func (bill *Billing) readVolumeBillingInfo(groupID int64, date, billType string)
 	if err != nil {
 		return nil, err
 	}
+	defer func() {
+		_ = res.Close()
+	}()
 
 	resGetCharge, err := client.RC.GetCharge(groupID)
 	if err != nil {
@@ -335,6 +349,7 @@ func (bill *Billing) readVolumeBillingInfo(groupID int64, date, billType string)
 
 	for res.Next() {
 		_ = res.Scan(&detailVolume.VolumeBill.GroupID,
+			&detailVolume.VolumeBill.Date,
 			&detailVolume.VolumeBill.ChargeSSD,
 			&detailVolume.VolumeBill.ChargeHDD)
 
@@ -404,6 +419,9 @@ func (bill *Billing) readNetworkBillingInfo(groupID int64, date, billType string
 	if err != nil {
 		return nil, err
 	}
+	defer func() {
+		_ = res.Close()
+	}()
 
 	resGetCharge, err := client.RC.GetCharge(groupID)
 	if err != nil {
@@ -412,6 +430,7 @@ func (bill *Billing) readNetworkBillingInfo(groupID int64, date, billType string
 
 	for res.Next() {
 		_ = res.Scan(&detailNetwork.NetworkBill.GroupID,
+			&detailNetwork.NetworkBill.Date,
 			&detailNetwork.NetworkBill.ChargeSubnet,
 			&detailNetwork.NetworkBill.ChargeAdaptiveIP)
 
@@ -462,6 +481,7 @@ func (bill *Billing) readNetworkBillingInfo(groupID int64, date, billType string
 					PublicIP:       adaptiveIP.PublicIP,
 					PrivateIP:      adaptiveIP.PrivateIP,
 					PrivateGateway: adaptiveIP.PrivateGateway,
+					Cost: resGetCharge.Charge.ChargeAdaptiveIPPerCnt,
 				}
 
 				adaptiveIPs = append(adaptiveIPs, adaptiveIP)
@@ -483,6 +503,9 @@ func (bill *Billing) ReadBillingData(groupID *[]int64, dateStart, dateEnd, billT
 		logger.Logger.Println("ReadBillingData(): dao.GetBill(): " + err.Error())
 		return &billList, err
 	}
+	defer func() {
+		_ = res.Close()
+	}()
 
 	for res.Next() {
 		var bill model.Bill

@@ -155,12 +155,12 @@ func (s *pianoServer) GetBillingDetail(_ context.Context, in *pb.ReqBillingData)
 				errors.NewHccError(errors.PianoGrpcArgumentError, "-> Too many Group ID")))
 
 	} else {
-		switch in.BillingType {
-		case "YEARLY":
+		switch strings.ToLower(in.BillingType) {
+		case "yearly":
 			fallthrough
-		case "MONTHLY":
+		case "monthly":
 			fallthrough
-		case "DAILY":
+		case "daily":
 			resBillingDetail.BillingType = in.BillingType
 			resBillingDetail.GroupID = in.GroupID
 

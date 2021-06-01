@@ -366,7 +366,7 @@ func GetBillInfo(groupID int64, date, billType, category string) (*dbsql.Rows, e
 		return nil, errors.New("DAO(GetBill) -> Unsupported billing type")
 	}
 
-	prefix = billType + prefix
+	prefix = billType + "_" + category
 
 	switch category {
 	case "node":
@@ -390,9 +390,6 @@ func GetBillInfo(groupID int64, date, billType, category string) (*dbsql.Rows, e
 		logger.Logger.Println("Sending SQL Query from GetBillInfo(): " + sql)
 	}
 	res, err := sendQuery(sql)
-	if res != nil {
-		_ = res.Close()
-	}
 
 	return res, err
 }

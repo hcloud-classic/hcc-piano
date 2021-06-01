@@ -2,6 +2,7 @@ package model
 
 type NodeBill struct {
 	GroupID   int64  `json:"group_id"`
+	Date      string `json:"date"`
 	NodeUUID  string `json:"node_uuid"`
 	ChargeCPU int64  `json:"charge_cpu"`
 	ChargeMEM int64  `json:"charge_memory"`
@@ -10,14 +11,16 @@ type NodeBill struct {
 
 type ServerBill struct {
 	GroupID       int64  `json:"group_id"`
+	Date          string `json:"date"`
 	ServerUUID    string `json:"server_uuid"`
 	ChargeTraffic int64  `json:"charge_traffic"`
 }
 
 type NetworkBill struct {
-	GroupID          int64 `json:"group_id"`
-	ChargeSubnet     int64 `json:"charge_subnet"`
-	ChargeAdaptiveIP int64 `json:"charge_adaptive_ip"`
+	GroupID          int64  `json:"group_id"`
+	Date             string `json:"date"`
+	ChargeSubnet     int64  `json:"charge_subnet"`
+	ChargeAdaptiveIP int64  `json:"charge_adaptive_ip"`
 }
 
 type VolumeBill struct {
@@ -96,6 +99,7 @@ type AdaptiveIP struct {
 	PublicIP       string `json:"public_ip"`
 	PrivateIP      string `json:"private_ip"`
 	PrivateGateway string `json:"private_gateway"`
+	Cost           int64  `json:"cost"`
 }
 
 type DetailNetwork struct {
