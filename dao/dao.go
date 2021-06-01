@@ -143,6 +143,19 @@ func GetDailyInfo(groupList []*pb.Group,
 	volumeBillingList *[]model.VolumeBill) *[]model.DailyBill {
 	var billList []model.DailyBill
 
+	if nodeBillingList == nil {
+		nodeBillingList = &[]model.NodeBill{}
+	}
+	if serverBillingList == nil {
+		serverBillingList = &[]model.ServerBill{}
+	}
+	if networkBillingList == nil {
+		networkBillingList = &[]model.NetworkBill{}
+	}
+	if volumeBillingList == nil {
+		volumeBillingList = &[]model.VolumeBill{}
+	}
+
 	for _, group := range groupList {
 		if group.Id == 1 {
 			continue
