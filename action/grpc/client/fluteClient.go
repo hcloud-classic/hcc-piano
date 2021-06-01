@@ -77,6 +77,19 @@ func checkFlute() {
 	}()
 }
 
+// GetNode : Get infos of the node
+func (rc *RPCClient) GetNode(uuid string) (*pb.ResGetNode, error) {
+	ctx, cancel := context.WithTimeout(context.Background(),
+		time.Duration(config.Flute.RequestTimeoutMs)*time.Millisecond)
+	defer cancel()
+	resGetNode, err := rc.flute.GetNode(ctx, &pb.ReqGetNode{UUID: uuid})
+	if err != nil {
+		return nil, err
+	}
+
+	return resGetNode, nil
+}
+
 // GetNodeList : Get the list of nodes
 func (rc *RPCClient) GetNodeList(in *pb.ReqGetNodeList) (*pb.ResGetNodeList, error) {
 	ctx, cancel := context.WithTimeout(context.Background(),

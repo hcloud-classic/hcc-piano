@@ -21,13 +21,13 @@ type pianoServer struct {
 	pb.UnimplementedPianoServer
 }
 
-func (s *pianoServer) Telegraph(ctx context.Context, in *pb.ReqMetricInfo) (*pb.ResMonitoringData, error) {
+func (s *pianoServer) Telegraph(_ context.Context, in *pb.ReqMetricInfo) (*pb.ResMonitoringData, error) {
 	series := influxdb.GetInfluxData(in)
 
 	return series, nil
 }
 
-func (s *pianoServer) GetBillingData(ctx context.Context, in *pb.ReqBillingData) (*pb.ResBillingData, error) {
+func (s *pianoServer) GetBillingData(_ context.Context, in *pb.ReqBillingData) (*pb.ResBillingData, error) {
 	var data *[]model.Bill
 	var count int
 	var err error
@@ -141,7 +141,7 @@ OUT:
 	return &resBillingData, nil
 }
 
-func (s *pianoServer) GetBillingDetail(ctx context.Context, in *pb.ReqBillingData) (*pb.ResBillingData, error) {
+func (s *pianoServer) GetBillingDetail(_ context.Context, in *pb.ReqBillingData) (*pb.ResBillingData, error) {
 	var resBillingDetail = pb.ResBillingData{
 		BillingType:   "UNDEFINED",
 		GroupID:       []int64{},
@@ -149,39 +149,39 @@ func (s *pianoServer) GetBillingDetail(ctx context.Context, in *pb.ReqBillingDat
 		HccErrorStack: nil,
 	}
 
-	//if len(in.GroupID) > 1 {
-	//	resBillingDetail.HccErrorStack = errconv.HccStackToGrpc(
-	//		errors.NewHccErrorStack(
-	//			errors.NewHccError(errors.PianoGrpcArgumentError, "-> Too many Group ID")))
-	//
-	//} else {
-	//	switch in.BillingType {
-	//	case "YEARLY":
-	//		in.DateStart = in.DateStart / 10000 * 10000
-	//		in.DateEnd = in.DateEnd / 10000 * 10000
-	//		fallthrough
-	//	case "MONTHLY":
-	//		in.DateStart = in.DateStart / 100 * 100
-	//		in.DateEnd = in.DateEnd / 100 * 100
-	//		fallthrough
-	//	case "DAILY":
-	//		resBillingDetail.BillingType = in.BillingType
-	//		resBillingDetail.GroupID = in.GroupID
-	//
-	//		data, err := billing.DriverBilling.ReadBillingDetail(in.GroupID[0], strconv.Itoa(int(in.DateStart)), in.BillingType)
-	//		resBillingDetail.Result, _ = json.Marshal(*data)
-	//		if err != nil {
-	//			resBillingDetail.HccErrorStack = errconv.HccStackToGrpc(
-	//				errors.NewHccErrorStack(
-	//					errors.NewHccError(errors.PianoInternalOperationFail, err.Error())))
-	//		}
-	//	default:
-	//		resBillingDetail.HccErrorStack = errconv.HccStackToGrpc(
-	//			errors.NewHccErrorStack(
-	//				errors.NewHccError(errors.PianoGrpcArgumentError, "-> Unsupport BillingType")))
-	//	}
-	//
-	//}
+	if len(in.GroupID) > 1 {
+		resBillingDetail.HccErrorStack = errconv.HccStackToGrpc(
+			errors.NewHccErrorStack(
+				errors.NewHccError(errors.PianoGrpcArgumentError, "-> Too many Group ID")))
+
+	} else {
+		switch in.BillingType {
+		case "YEARLY":
+			fallthrough
+		case "MONTHLY":
+			fallthrough
+		case "DAILY":
+			resBillingDetail.BillingType = in.BillingType
+			resBillingDetail.GroupID = in.GroupID
+
+			data, err := billing.DriverBilling.ReadBillingDetail(in.GroupID[0], in.DateStart, in.BillingType)
+			if data != nil {
+				resBillingDetail.Result, _ = json.Marshal(*data)
+			} else {
+				resBillingDetail.Result = []byte{}
+			}
+			if err != nil {
+				resBillingDetail.HccErrorStack = errconv.HccStackToGrpc(
+					errors.NewHccErrorStack(
+						errors.NewHccError(errors.PianoInternalOperationFail, err.Error())))
+			}
+		default:
+			resBillingDetail.HccErrorStack = errconv.HccStackToGrpc(
+				errors.NewHccErrorStack(
+					errors.NewHccError(errors.PianoGrpcArgumentError, "-> Unsupport BillingType")))
+		}
+
+	}
 
 	return &resBillingDetail, nil
 }
