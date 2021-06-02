@@ -103,19 +103,41 @@ func (bill *Billing) UpdateBillingInfo() {
 		}
 	}
 
-	networkBillList, err := getNetworkBillingInfo(resGetGroupList.Group)
+	if config.Billing.Debug == "on" {
+		logger.Logger.Println("RunUpdateTimer(): Getting subnet_billing_info")
+	}
+	subnetBillList, err := getSubnetBillingInfo(resGetGroupList.Group)
 	if err != nil {
-		logger.Logger.Println("UpdateBillingInfo(): getNetworkBillingInfo(): " + err.Error())
+		logger.Logger.Println("UpdateBillingInfo(): getSubnetBillingInfo(): " + err.Error())
 	} else {
 		if config.Billing.Debug == "on" {
-			logger.Logger.Println("RunUpdateTimer(): Inserting network_billing_info")
+			logger.Logger.Println("RunUpdateTimer(): Inserting subnet_billing_info")
 		}
-		err = dao.InsertNetworkBillingInfo(networkBillList)
+		err = dao.InsertSubnetBillingInfo(subnetBillList)
 		if err != nil {
-			logger.Logger.Println("UpdateBillingInfo(): InsertNetworkBillingInfo(): " + err.Error())
+			logger.Logger.Println("UpdateBillingInfo(): InsertSubnetBillingInfo(): " + err.Error())
 		}
 	}
 
+	if config.Billing.Debug == "on" {
+		logger.Logger.Println("RunUpdateTimer(): Getting adaptiveip_billing_info")
+	}
+	adaptiveIPBillList, err := getAdaptiveIPBillingInfo(resGetGroupList.Group)
+	if err != nil {
+		logger.Logger.Println("UpdateBillingInfo(): getAdaptiveIPBillingInfo(): " + err.Error())
+	} else {
+		if config.Billing.Debug == "on" {
+			logger.Logger.Println("RunUpdateTimer(): Inserting adaptiveip_billing_info")
+		}
+		err = dao.InsertAdaptiveIPBillingInfo(adaptiveIPBillList)
+		if err != nil {
+			logger.Logger.Println("UpdateBillingInfo(): InsertAdaptiveIPBillingInfo(): " + err.Error())
+		}
+	}
+
+	if config.Billing.Debug == "on" {
+		logger.Logger.Println("RunUpdateTimer(): Getting volume_billing_info")
+	}
 	volumeBillList, err := getVolumeBillingInfo(resGetGroupList.Group)
 	if err != nil {
 		logger.Logger.Println("UpdateBillingInfo(): getVolumeBillingInfo(): " + err.Error())
@@ -133,7 +155,7 @@ func (bill *Billing) UpdateBillingInfo() {
 		if config.Billing.Debug == "on" {
 			logger.Logger.Println("RunUpdateTimer(): Getting daily_info")
 		}
-		dailyBillList := dao.GetDailyInfo(resGetGroupList.Group, nodeBillList, serverBillList, networkBillList, volumeBillList)
+		dailyBillList := dao.GetDailyInfo(resGetGroupList.Group, nodeBillList, serverBillList, subnetBillList, adaptiveIPBillList, volumeBillList)
 		if config.Billing.Debug == "on" {
 			logger.Logger.Println("RunUpdateTimer(): Inserting daily_info")
 		}
@@ -330,9 +352,87 @@ func (bill *Billing) readServerBillingInfo(groupID int64, date, billType string)
 	return &detailServers, err
 }
 
-func (bill *Billing) readVolumeBillingInfo(groupID int64, date, billType string) (*model.DetailVolume, error) {
-	var detailVolume model.DetailVolume
-	var volumes []model.Volume
+func (bill *Billing) readSubnetBillingInfo(groupID int64, date, billType string) (*[]model.DetailSubnet, error) {
+	var detailSubnets []model.DetailSubnet
+
+	res, err := dao.GetBillInfo(groupID, date, billType, "subnet")
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		_ = res.Close()
+	}()
+
+	for res.Next() {
+		var detailSubnet model.DetailSubnet
+
+		_ = res.Scan(&detailSubnet.SubnetBill.GroupID,
+			&detailSubnet.SubnetBill.Date,
+			&detailSubnet.SubnetBill.SubnetUUID,
+			&detailSubnet.SubnetBill.ChargeSubnet)
+
+		resGetSubnet, err := client.RC.GetSubnet(detailSubnet.SubnetBill.SubnetUUID)
+		if err != nil {
+			return nil, err
+		}
+
+		detailSubnet.Subnet = model.Subnet{
+			SubnetName: resGetSubnet.Subnet.SubnetName,
+			DomainName: resGetSubnet.Subnet.DomainName,
+			NetworkIP:  resGetSubnet.Subnet.NetworkIP,
+			GatewayIP:  resGetSubnet.Subnet.Gateway,
+		}
+
+		detailSubnets = append(detailSubnets, detailSubnet)
+	}
+
+	return &detailSubnets, err
+}
+
+func (bill *Billing) readAdaptiveIPBillingInfo(groupID int64, date, billType string) (*[]model.DetailAdaptiveIP, error) {
+	var detailAdaptiveIPs []model.DetailAdaptiveIP
+
+	res, err := dao.GetBillInfo(groupID, date, billType, "adaptiveip")
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		_ = res.Close()
+	}()
+
+	for res.Next() {
+		var detailAdaptiveIP model.DetailAdaptiveIP
+
+		_ = res.Scan(&detailAdaptiveIP.AdaptiveIPBill.GroupID,
+			&detailAdaptiveIP.AdaptiveIPBill.Date,
+			&detailAdaptiveIP.AdaptiveIPBill.ServerUUID,
+			&detailAdaptiveIP.AdaptiveIPBill.ChargeAdaptiveIP)
+
+		resGetAdaptiveIPServer, err := client.RC.GetAdaptiveIPServer(detailAdaptiveIP.AdaptiveIPBill.ServerUUID)
+		if err != nil {
+			return nil, err
+		}
+
+		resGetServer, err := client.RC.GetServer(resGetAdaptiveIPServer.AdaptiveipServer.ServerUUID)
+		if err != nil {
+			return nil, err
+		}
+
+		detailAdaptiveIP.AdaptiveIP = model.AdaptiveIP{
+			ServerName:     resGetServer.Server.ServerName,
+			PublicIP:       resGetAdaptiveIPServer.AdaptiveipServer.PublicIP,
+			PrivateIP:      resGetAdaptiveIPServer.AdaptiveipServer.PrivateIP,
+			PrivateGateway: resGetAdaptiveIPServer.AdaptiveipServer.PrivateGateway,
+		}
+
+		detailAdaptiveIPs = append(detailAdaptiveIPs, detailAdaptiveIP)
+	}
+
+	return &detailAdaptiveIPs, err
+}
+
+func (bill *Billing) readVolumeBillingInfo(groupID int64, date, billType string) (*[]model.DetailVolume, error) {
+	var detailVolumes []model.DetailVolume
 
 	res, err := dao.GetBillInfo(groupID, date, billType, "volume")
 	if err != nil {
@@ -342,157 +442,78 @@ func (bill *Billing) readVolumeBillingInfo(groupID int64, date, billType string)
 		_ = res.Close()
 	}()
 
-	resGetCharge, err := client.RC.GetCharge(groupID)
+	var volumes []model.Volume
+
+	resGetServerList, err := client.RC.GetServerList(&pb.ReqGetServerList{
+		Server: &pb.Server{},
+	})
 	if err != nil {
 		return nil, err
 	}
 
+	for _, server := range resGetServerList.Server {
+		resGetVolumeList, err := client.RC.GetVolumeList(&pb.ReqGetVolumeList{
+			Volume: &pb.Volume{
+				Action:     "read_list",
+				ServerUUID: server.UUID,
+			},
+			// TODO : Should be control row and page later?
+			Row:  10,
+			Page: 1,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		for _, volume := range resGetVolumeList.Volume {
+			useType := strings.ToLower(volume.UseType)
+			size, _ := strconv.Atoi(volume.Size)
+
+			// TODO : Should it be change to identify SSD or HDD later?
+			var diskType string
+			if useType == "os" {
+				diskType = "SSD"
+			} else if useType == "data" {
+				diskType = "HDD"
+			}
+
+			volumes = append(volumes, model.Volume{
+				UUID:      volume.UUID,
+				Pool:      volume.Pool,
+				UsageType: volume.UseType,
+				DiskType:  diskType,
+				DiskSize:  size,
+			})
+		}
+	}
+
 	for res.Next() {
+		var detailVolume model.DetailVolume
+
 		_ = res.Scan(&detailVolume.VolumeBill.GroupID,
 			&detailVolume.VolumeBill.Date,
+			&detailVolume.VolumeBill.VolumeUUID,
 			&detailVolume.VolumeBill.ChargeSSD,
 			&detailVolume.VolumeBill.ChargeHDD)
 
-		resGetServerList, err := client.RC.GetServerList(&pb.ReqGetServerList{
-			Server: &pb.Server{
-				GroupID: groupID,
-			},
-		})
-		if err != nil {
-			return nil, err
-		}
-
-		for _, server := range resGetServerList.Server {
-			resGetVolumeList, err := client.RC.GetVolumeList(&pb.ReqGetVolumeList{
-				Volume: &pb.Volume{
-					Action:     "read_list",
-					ServerUUID: server.UUID,
-				},
-				// TODO : Should be control row and page later?
-				Row:  10,
-				Page: 1,
-			})
-			if err != nil {
-				return nil, err
-			}
-
-			for _, volume := range resGetVolumeList.Volume {
-				useType := strings.ToLower(volume.UseType)
-				size, _ := strconv.Atoi(volume.Size)
-
-				// TODO : Should it be change to identify SSD or HDD later?
-				var diskType string
-				var cost int64
-				if useType == "os" {
-					diskType = "SSD"
-					cost = resGetCharge.Charge.ChargeSSDPerGB * int64(size)
-				} else if useType == "data" {
-					diskType = "HDD"
-					cost = resGetCharge.Charge.ChargeHDDPerGB * int64(size)
-				}
-
-				volume := model.Volume{
+		for _, volume := range volumes {
+			if detailVolume.VolumeBill.VolumeUUID == volume.UUID {
+				detailVolume.Volume = model.Volume{
 					UUID:      volume.UUID,
 					Pool:      volume.Pool,
-					UsageType: volume.UseType,
-					DiskType:  diskType,
-					DiskSize:  size,
-					Cost:      cost,
+					UsageType: volume.UsageType,
+					DiskType:  volume.DiskType,
+					DiskSize:  volume.DiskSize,
 				}
 
-				volumes = append(volumes, volume)
+				break
 			}
 		}
+
+		detailVolumes = append(detailVolumes, detailVolume)
 	}
 
-	detailVolume.Volumes = volumes
-
-	return &detailVolume, err
-}
-
-func (bill *Billing) readNetworkBillingInfo(groupID int64, date, billType string) (*model.DetailNetwork, error) {
-	var detailNetwork model.DetailNetwork
-	var subnets []model.Subnet
-	var adaptiveIPs []model.AdaptiveIP
-
-	res, err := dao.GetBillInfo(groupID, date, billType, "network")
-	if err != nil {
-		return nil, err
-	}
-	defer func() {
-		_ = res.Close()
-	}()
-
-	resGetCharge, err := client.RC.GetCharge(groupID)
-	if err != nil {
-		return nil, err
-	}
-
-	for res.Next() {
-		_ = res.Scan(&detailNetwork.NetworkBill.GroupID,
-			&detailNetwork.NetworkBill.Date,
-			&detailNetwork.NetworkBill.ChargeSubnet,
-			&detailNetwork.NetworkBill.ChargeAdaptiveIP)
-
-		resGetServerList, err := client.RC.GetServerList(&pb.ReqGetServerList{
-			Server: &pb.Server{
-				GroupID: groupID,
-			},
-		})
-		if err != nil {
-			return nil, err
-		}
-
-		for _, server := range resGetServerList.Server {
-
-			resGetSubnetList, err := client.RC.GetSubnetList(&pb.ReqGetSubnetList{
-				Subnet: &pb.Subnet{
-					ServerUUID: server.UUID,
-				},
-			})
-			if err != nil {
-				return nil, err
-			}
-
-			for _, subnet := range resGetSubnetList.Subnet {
-				subnet := model.Subnet{
-					SubnetName: subnet.SubnetName,
-					DomainName: subnet.DomainName,
-					NetworkIP:  subnet.NetworkIP,
-					GatewayIP:  subnet.Gateway,
-					Cost:       resGetCharge.Charge.ChargeSubnetPerCnt,
-				}
-
-				subnets = append(subnets, subnet)
-			}
-
-			resGetAdaptiveIPServerList, err := client.RC.GetAdaptiveIPServerList(&pb.ReqGetAdaptiveIPServerList{
-				AdaptiveipServer: &pb.AdaptiveIPServer{
-					ServerUUID: server.UUID,
-				},
-			})
-			if err != nil {
-				return nil, err
-			}
-
-			for _, adaptiveIP := range resGetAdaptiveIPServerList.AdaptiveipServer {
-				adaptiveIP := model.AdaptiveIP{
-					ServerName:     server.ServerName,
-					PublicIP:       adaptiveIP.PublicIP,
-					PrivateIP:      adaptiveIP.PrivateIP,
-					PrivateGateway: adaptiveIP.PrivateGateway,
-					Cost: resGetCharge.Charge.ChargeAdaptiveIPPerCnt,
-				}
-
-				adaptiveIPs = append(adaptiveIPs, adaptiveIP)
-			}
-		}
-	}
-
-	detailNetwork.Subnets = subnets
-	detailNetwork.AdaptiveIPs = adaptiveIPs
-
-	return &detailNetwork, err
+	return &detailVolumes, err
 }
 
 func (bill *Billing) ReadBillingData(groupID *[]int64, dateStart, dateEnd, billType string, row, page int) (*[]model.Bill, error) {
@@ -527,6 +548,9 @@ func (bill *Billing) ReadBillingDetail(groupID int64, date, billType string) (*m
 	var returnErr error = nil
 	var billingDetail model.BillDetail
 
+	billingDetail.Date = date
+	billingDetail.GroupID = groupID
+
 	billingDetail.DetailNode, err = bill.readNodeBillingInfo(groupID, date, billType)
 	if err != nil {
 		logger.Logger.Println("ReadBillingDetail(): bill.readNodeBillingInfo(): " + err.Error())
@@ -542,18 +566,27 @@ func (bill *Billing) ReadBillingDetail(groupID int64, date, billType string) (*m
 		returnErr = errors.New(returnErr.Error() + "\n" + err.Error())
 	}
 
-	billingDetail.DetailVolume, err = bill.readVolumeBillingInfo(groupID, date, billType)
+	billingDetail.DetailSubnet, err = bill.readSubnetBillingInfo(groupID, date, billType)
 	if err != nil {
-		logger.Logger.Println("ReadBillingDetail(): bill.readVolumeBillingInfo(): " + err.Error())
+		logger.Logger.Println("ReadBillingDetail(): bill.readSubnetBillingInfo(): " + err.Error())
 		if returnErr == nil {
 			returnErr = errors.New("")
 		}
 		returnErr = errors.New(returnErr.Error() + "\n" + err.Error())
 	}
 
-	billingDetail.DetailNetwork, err = bill.readNetworkBillingInfo(groupID, date, billType)
+	billingDetail.DetailAdaptiveIP, err = bill.readAdaptiveIPBillingInfo(groupID, date, billType)
 	if err != nil {
-		logger.Logger.Println("ReadBillingDetail(): bill.readNetworkBillingInfo(): " + err.Error())
+		logger.Logger.Println("ReadBillingDetail(): bill.readAdaptiveIPBillingInfo(): " + err.Error())
+		if returnErr == nil {
+			returnErr = errors.New("")
+		}
+		returnErr = errors.New(returnErr.Error() + "\n" + err.Error())
+	}
+
+	billingDetail.DetailVolume, err = bill.readVolumeBillingInfo(groupID, date, billType)
+	if err != nil {
+		logger.Logger.Println("ReadBillingDetail(): bill.readVolumeBillingInfo(): " + err.Error())
 		if returnErr == nil {
 			returnErr = errors.New("")
 		}

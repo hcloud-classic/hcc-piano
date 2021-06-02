@@ -91,20 +91,40 @@ func InsertServerBillingInfo(infoList *[]model.ServerBill) error {
 	return err
 }
 
-func InsertNetworkBillingInfo(infoList *[]model.NetworkBill) error {
-	sql := "INSERT INTO `piano`.`network_billing_info` (`group_id`, `date`, `charge_subnet`, `charge_adaptive_ip`) VALUES "
+func InsertSubnetBillingInfo(infoList *[]model.SubnetBill) error {
+	sql := "INSERT INTO `piano`.`subnet_billing_info` (`group_id`, `date`, `subnet_uuid`, `charge_subnet`) VALUES "
 
 	for _, info := range *infoList {
-		sql += fmt.Sprintf("(%d, DATE(NOW()), %d, %d),",
+		sql += fmt.Sprintf("(%d, DATE(NOW()), '%s', %d),",
 			info.GroupID,
-			info.ChargeSubnet,
+			info.SubnetUUID,
+			info.ChargeSubnet)
+	}
+
+	sql = strings.TrimSuffix(sql, ",") + " AS `new_info` "
+	sql += "ON DUPLICATE KEY UPDATE " +
+		"`charge_subnet` = `new_info`.`charge_subnet`;"
+
+	res, err := sendQuery(sql)
+	if res != nil {
+		_ = res.Close()
+	}
+	return err
+}
+
+func InsertAdaptiveIPBillingInfo(infoList *[]model.AdaptiveIPBill) error {
+	sql := "INSERT INTO `piano`.`adaptiveip_billing_info` (`group_id`, `date`, `server_uuid`, `charge_adaptiveip`) VALUES "
+
+	for _, info := range *infoList {
+		sql += fmt.Sprintf("(%d, DATE(NOW()), '%s', %d),",
+			info.GroupID,
+			info.ServerUUID,
 			info.ChargeAdaptiveIP)
 	}
 
 	sql = strings.TrimSuffix(sql, ",") + " AS `new_info` "
 	sql += "ON DUPLICATE KEY UPDATE " +
-		"`charge_subnet` = `new_info`.`charge_subnet`, " +
-		"`charge_adaptive_ip` = `new_info`.`charge_adaptive_ip`;"
+		"`charge_adaptiveip` = `new_info`.`charge_adaptiveip`;"
 
 	res, err := sendQuery(sql)
 	if res != nil {
@@ -114,11 +134,12 @@ func InsertNetworkBillingInfo(infoList *[]model.NetworkBill) error {
 }
 
 func InsertVolumeBillingInfo(infoList *[]model.VolumeBill) error {
-	sql := "INSERT INTO `piano`.`volume_billing_info` (`group_id`, `date`, `charge_ssd`, `charge_hdd`) VALUES "
+	sql := "INSERT INTO `piano`.`volume_billing_info` (`group_id`, `date`, `volume_uuid`, `charge_ssd`, `charge_hdd`) VALUES "
 
 	for _, info := range *infoList {
-		sql += fmt.Sprintf("(%d, DATE(NOW()), %d, %d),",
+		sql += fmt.Sprintf("(%d, DATE(NOW()), '%s', %d, %d),",
 			info.GroupID,
+			info.VolumeUUID,
 			info.ChargeSSD,
 			info.ChargeHDD)
 	}
@@ -139,7 +160,8 @@ func InsertVolumeBillingInfo(infoList *[]model.VolumeBill) error {
 func GetDailyInfo(groupList []*pb.Group,
 	nodeBillingList *[]model.NodeBill,
 	serverBillingList *[]model.ServerBill,
-	networkBillingList *[]model.NetworkBill,
+	subnetBillingList *[]model.SubnetBill,
+	adaptiveIPBillingList *[]model.AdaptiveIPBill,
 	volumeBillingList *[]model.VolumeBill) *[]model.DailyBill {
 	var billList []model.DailyBill
 
@@ -149,8 +171,11 @@ func GetDailyInfo(groupList []*pb.Group,
 	if serverBillingList == nil {
 		serverBillingList = &[]model.ServerBill{}
 	}
-	if networkBillingList == nil {
-		networkBillingList = &[]model.NetworkBill{}
+	if subnetBillingList == nil {
+		subnetBillingList = &[]model.SubnetBill{}
+	}
+	if adaptiveIPBillingList == nil {
+		adaptiveIPBillingList = &[]model.AdaptiveIPBill{}
 	}
 	if volumeBillingList == nil {
 		volumeBillingList = &[]model.VolumeBill{}
@@ -180,10 +205,15 @@ func GetDailyInfo(groupList []*pb.Group,
 			}
 		}
 
-		for _, networkBilling := range *networkBillingList {
-			if networkBilling.GroupID == group.Id {
-				chargeNetwork += networkBilling.ChargeSubnet +
-					networkBilling.ChargeAdaptiveIP
+		for _, subnetBilling := range *subnetBillingList {
+			if subnetBilling.GroupID == group.Id {
+				chargeNetwork += subnetBilling.ChargeSubnet
+			}
+		}
+
+		for _, adaptiveIPBilling := range *adaptiveIPBillingList {
+			if adaptiveIPBilling.GroupID == group.Id {
+				chargeNetwork += adaptiveIPBilling.ChargeAdaptiveIP
 			}
 		}
 
@@ -373,7 +403,9 @@ func GetBillInfo(groupID int64, date, billType, category string) (*dbsql.Rows, e
 		fallthrough
 	case "server":
 		break
-	case "network":
+	case "subnet":
+		fallthrough
+	case "adaptiveip":
 		fallthrough
 	case "volume":
 		if billType == "daily" {
