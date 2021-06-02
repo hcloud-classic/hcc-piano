@@ -29,7 +29,7 @@ FROM
     (`piano`.`daily_info`
         JOIN `piccolo`.`group`)
 WHERE
-    (`piano`.`daily_info`.`group_id` = `piccolo`.`group`.`id`)
+    (`piano`.`daily_info`.`group_id` = `piccolo`.`group`.`id`);
 
 /* monthly_bill */
 CREATE
@@ -60,7 +60,7 @@ FROM
          `piano`.`daily_bill`.`charge_volume` AS `charge_volume`
      FROM
          `piano`.`daily_bill`) `daily`
-GROUP BY `daily`.`date` , `daily`.`group_id` , `daily`.`group_name`
+GROUP BY `daily`.`date` , `daily`.`group_id` , `daily`.`group_name`;
 
 /* yearly_bill */
 CREATE
@@ -89,7 +89,7 @@ FROM
          `piano`.`monthly_bill`.`charge_volume` AS `charge_volume`
      FROM
          `piano`.`monthly_bill`) `monthly`
-GROUP BY `monthly`.`date` , `monthly`.`group_id` , `monthly`.`group_name`
+GROUP BY `monthly`.`date` , `monthly`.`group_id` , `monthly`.`group_name`;
 
 /* daily_node_billing_info */
 CREATE
@@ -121,7 +121,7 @@ FROM
              JOIN `flute`.`node_uptime`)) `daily`
 WHERE
     ((`daily`.`node_uuid` = CONVERT( `daily`.`node_uptime_node_uuid` USING UTF8MB4))
-        AND (`daily`.`date` = `daily`.`node_uptime_date`))
+        AND (`daily`.`date` = `daily`.`node_uptime_date`));
 
 /* daily_server_billing_info */
 CREATE
@@ -149,32 +149,57 @@ FROM
              JOIN `traffic`)) `daily`
 WHERE
     ((`daily`.`traffic_date` = `daily`.`date`)
-        AND (`daily`.`server_uuid` = CONVERT( `daily`.`traffic_server_uuid` USING UTF8MB4)))
+        AND (`daily`.`server_uuid` = CONVERT( `daily`.`traffic_server_uuid` USING UTF8MB4)));
 
-/* monthly_network_billing_info */
+/* monthly_subnet_billing_info */
 CREATE
     ALGORITHM = UNDEFINED
     DEFINER = `root`@`%`
     SQL SECURITY DEFINER
-    VIEW `piano`.`monthly_network_billing_info` AS
+    VIEW `piano`.`monthly_subnet_billing_info` AS
 SELECT
     `daily`.`group_id` AS `group_id`,
     `daily`.`date` AS `date`,
-    SUM(`daily`.`charge_subnet`) AS `charge_subnet`,
-    SUM(`daily`.`charge_adaptive_ip`) AS `charge_adaptive_ip`
+    `daily`.`subnet_uuid` AS `subnet_uuid`,
+    SUM(`daily`.`charge_subnet`) AS `charge_subnet`
 FROM
     (SELECT
-         `piano`.`network_billing_info`.`group_id` AS `group_id`,
-         CONCAT(LPAD(CAST(FLOOR((CAST(REPLACE(`piano`.`network_billing_info`.`date`, '-', '')
+         `piano`.`subnet_billing_info`.`group_id` AS `group_id`,
+         CONCAT(LPAD(CAST(FLOOR((CAST(REPLACE(`piano`.`subnet_billing_info`.`date`, '-', '')
                                      AS UNSIGNED) / 10000))
-                         AS CHAR (4) CHARSET UTF8MB4), 4, 0), '-', LPAD(CAST(FLOOR(((CAST(REPLACE(`piano`.`network_billing_info`.`date`, '-', '')
+                         AS CHAR (4) CHARSET UTF8MB4), 4, 0), '-', LPAD(CAST(FLOOR(((CAST(REPLACE(`piano`.`subnet_billing_info`.`date`, '-', '')
                                                                                          AS UNSIGNED) % 10000) / 100))
                                                                             AS CHAR (2) CHARSET UTF8MB4), 2, 0)) AS `date`,
-         `piano`.`network_billing_info`.`charge_subnet` AS `charge_subnet`,
-         `piano`.`network_billing_info`.`charge_adaptive_ip` AS `charge_adaptive_ip`
+         `piano`.`subnet_billing_info`.`subnet_uuid` AS `subnet_uuid`,
+         `piano`.`subnet_billing_info`.`charge_subnet` AS `charge_subnet`
      FROM
-         `piano`.`network_billing_info`) `daily`
-GROUP BY `daily`.`group_id` , `daily`.`date`
+         `piano`.`subnet_billing_info`) `daily`
+GROUP BY `daily`.`group_id` , `daily`.`date` , `daily`.`subnet_uuid`;
+
+/* monthly_adaptiveip_billing_info */
+CREATE
+    ALGORITHM = UNDEFINED
+    DEFINER = `root`@`%`
+    SQL SECURITY DEFINER
+    VIEW `piano`.`monthly_adaptiveip_billing_info` AS
+SELECT
+    `daily`.`group_id` AS `group_id`,
+    `daily`.`date` AS `date`,
+    `daily`.`server_uuid` AS `server_uuid`,
+    SUM(`daily`.`charge_adaptiveip`) AS `charge_adaptiveip`
+FROM
+    (SELECT
+         `piano`.`adaptiveip_billing_info`.`group_id` AS `group_id`,
+         CONCAT(LPAD(CAST(FLOOR((CAST(REPLACE(`piano`.`adaptiveip_billing_info`.`date`, '-', '')
+                                     AS UNSIGNED) / 10000))
+                         AS CHAR (4) CHARSET UTF8MB4), 4, 0), '-', LPAD(CAST(FLOOR(((CAST(REPLACE(`piano`.`adaptiveip_billing_info`.`date`, '-', '')
+                                                                                         AS UNSIGNED) % 10000) / 100))
+                                                                            AS CHAR (2) CHARSET UTF8MB4), 2, 0)) AS `date`,
+         `piano`.`adaptiveip_billing_info`.`server_uuid` AS `server_uuid`,
+         `piano`.`adaptiveip_billing_info`.`charge_adaptiveip` AS `charge_adaptiveip`
+     FROM
+         `piano`.`adaptiveip_billing_info`) `daily`
+GROUP BY `daily`.`group_id` , `daily`.`date` , `daily`.`server_uuid`;
 
 /* monthly_node_billing_info */
 CREATE
@@ -205,7 +230,7 @@ FROM
          `piano`.`daily_node_billing_info`.`uptime_ms` AS `uptime_ms`
      FROM
          `piano`.`daily_node_billing_info`) `daily`
-GROUP BY `daily`.`group_id` , `daily`.`date` , `daily`.`node_uuid`
+GROUP BY `daily`.`group_id` , `daily`.`date` , `daily`.`node_uuid`;
 
 /* monthly_server_billing_info */
 CREATE
@@ -232,7 +257,7 @@ FROM
          `piano`.`daily_server_billing_info`.`traffic_kb` AS `traffic_kb`
      FROM
          `piano`.`daily_server_billing_info`) `daily`
-GROUP BY `daily`.`group_id` , `daily`.`date` , `daily`.`server_uuid`
+GROUP BY `daily`.`group_id` , `daily`.`date` , `daily`.`server_uuid`;
 
 /* monthly_volume_billing_info */
 CREATE
@@ -243,6 +268,7 @@ CREATE
 SELECT
     `daily`.`group_id` AS `group_id`,
     `daily`.`date` AS `date`,
+    `daily`.`volume_uuid` AS `volume_uuid`,
     SUM(`daily`.`charge_ssd`) AS `charge_ssd`,
     SUM(`daily`.`charge_hdd`) AS `charge_hdd`
 FROM
@@ -253,34 +279,58 @@ FROM
                          AS CHAR (4) CHARSET UTF8MB4), 4, 0), '-', LPAD(CAST(FLOOR(((CAST(REPLACE(`piano`.`volume_billing_info`.`date`, '-', '')
                                                                                          AS UNSIGNED) % 10000) / 100))
                                                                             AS CHAR (2) CHARSET UTF8MB4), 2, 0)) AS `date`,
+         `piano`.`volume_billing_info`.`volume_uuid` AS `volume_uuid`,
          `piano`.`volume_billing_info`.`charge_ssd` AS `charge_ssd`,
          `piano`.`volume_billing_info`.`charge_hdd` AS `charge_hdd`
      FROM
          `piano`.`volume_billing_info`) `daily`
-GROUP BY `daily`.`group_id` , `daily`.`date`
+GROUP BY `daily`.`group_id` , `daily`.`date` , `daily`.`volume_uuid`;
 
-/* yearly_network_billing_info */
+/* yearly_subnet_billing_info */
 CREATE
     ALGORITHM = UNDEFINED
     DEFINER = `root`@`%`
     SQL SECURITY DEFINER
-    VIEW `piano`.`yearly_network_billing_info` AS
+    VIEW `piano`.`yearly_subnet_billing_info` AS
 SELECT
     `monthly`.`group_id` AS `group_id`,
     `monthly`.`date` AS `date`,
-    SUM(`monthly`.`charge_subnet`) AS `charge_subnet`,
-    SUM(`monthly`.`charge_adaptive_ip`) AS `charge_adaptive_ip`
+    `monthly`.`subnet_uuid` AS `subnet_uuid`,
+    SUM(`monthly`.`charge_subnet`) AS `charge_subnet`
 FROM
     (SELECT
-         `piano`.`monthly_network_billing_info`.`group_id` AS `group_id`,
-         CONCAT(LPAD(CAST(FLOOR((CAST(REPLACE(`piano`.`monthly_network_billing_info`.`date`, '-', '')
+         `piano`.`monthly_subnet_billing_info`.`group_id` AS `group_id`,
+         CONCAT(LPAD(CAST(FLOOR((CAST(REPLACE(`piano`.`monthly_subnet_billing_info`.`date`, '-', '')
                                      AS UNSIGNED) / 100))
                          AS CHAR (4) CHARSET UTF8MB4), 4, 0)) AS `date`,
-         `piano`.`monthly_network_billing_info`.`charge_subnet` AS `charge_subnet`,
-         `piano`.`monthly_network_billing_info`.`charge_adaptive_ip` AS `charge_adaptive_ip`
+         `piano`.`monthly_subnet_billing_info`.`subnet_uuid` AS `subnet_uuid`,
+         `piano`.`monthly_subnet_billing_info`.`charge_subnet` AS `charge_subnet`
      FROM
-         `piano`.`monthly_network_billing_info`) `monthly`
-GROUP BY `monthly`.`group_id` , `monthly`.`date`
+         `piano`.`monthly_subnet_billing_info`) `monthly`
+GROUP BY `monthly`.`group_id` , `monthly`.`date` , `monthly`.`subnet_uuid`;
+
+/* yearly_adaptiveip_billing_info */
+CREATE
+    ALGORITHM = UNDEFINED
+    DEFINER = `root`@`%`
+    SQL SECURITY DEFINER
+    VIEW `piano`.`yearly_adaptiveip_billing_info` AS
+SELECT
+    `monthly`.`group_id` AS `group_id`,
+    `monthly`.`date` AS `date`,
+    `monthly`.`server_uuid` AS `server_uuid`,
+    SUM(`monthly`.`charge_adaptiveip`) AS `charge_adaptiveip`
+FROM
+    (SELECT
+         `piano`.`monthly_adaptiveip_billing_info`.`group_id` AS `group_id`,
+         CONCAT(LPAD(CAST(FLOOR((CAST(REPLACE(`piano`.`monthly_adaptiveip_billing_info`.`date`, '-', '')
+                                     AS UNSIGNED) / 100))
+                         AS CHAR (4) CHARSET UTF8MB4), 4, 0)) AS `date`,
+         `piano`.`monthly_adaptiveip_billing_info`.`server_uuid` AS `server_uuid`,
+         `piano`.`monthly_adaptiveip_billing_info`.`charge_adaptiveip` AS `charge_adaptiveip`
+     FROM
+         `piano`.`monthly_adaptiveip_billing_info`) `monthly`
+GROUP BY `monthly`.`group_id` , `monthly`.`date` , `monthly`.`server_uuid`;
 
 /* yearly_node_billing_info */
 CREATE
@@ -309,7 +359,7 @@ FROM
          `piano`.`monthly_node_billing_info`.`uptime_ms` AS `uptime_ms`
      FROM
          `piano`.`monthly_node_billing_info`) `monthly`
-GROUP BY `monthly`.`group_id` , `monthly`.`date` , `monthly`.`node_uuid`
+GROUP BY `monthly`.`group_id` , `monthly`.`date` , `monthly`.`node_uuid`;
 
 /* yearly_server_billing_info */
 CREATE
@@ -334,7 +384,7 @@ FROM
          `piano`.`monthly_server_billing_info`.`traffic_kb` AS `traffic_kb`
      FROM
          `piano`.`monthly_server_billing_info`) `monthly`
-GROUP BY `monthly`.`group_id` , `monthly`.`date` , `monthly`.`server_uuid`
+GROUP BY `monthly`.`group_id` , `monthly`.`date` , `monthly`.`server_uuid`;
 
 /* yearly_volume_billing_info */
 CREATE
@@ -345,6 +395,7 @@ CREATE
 SELECT
     `monthly`.`group_id` AS `group_id`,
     `monthly`.`date` AS `date`,
+    `monthly`.`volume_uuid` AS `volume_uuid`,
     SUM(`monthly`.`charge_ssd`) AS `charge_ssd`,
     SUM(`monthly`.`charge_hdd`) AS `charge_hdd`
 FROM
@@ -353,8 +404,9 @@ FROM
          CONCAT(LPAD(CAST(FLOOR((CAST(REPLACE(`piano`.`monthly_volume_billing_info`.`date`, '-', '')
                                      AS UNSIGNED) / 100))
                          AS CHAR (4) CHARSET UTF8MB4), 4, 0)) AS `date`,
+         `piano`.`monthly_volume_billing_info`.`volume_uuid` AS `volume_uuid`,
          `piano`.`monthly_volume_billing_info`.`charge_ssd` AS `charge_ssd`,
          `piano`.`monthly_volume_billing_info`.`charge_hdd` AS `charge_hdd`
      FROM
          `piano`.`monthly_volume_billing_info`) `monthly`
-GROUP BY `monthly`.`group_id` , `monthly`.`date`
+GROUP BY `monthly`.`group_id` , `monthly`.`date` , `monthly`.`volume_uuid`;

@@ -30,10 +30,6 @@ func getVolumeBillingInfo(groupList []*pb.Group) (*[]model.VolumeBill, error) {
 			return nil, err
 		}
 
-		// TODO : Should it be change to identify SSD or HDD later?
-		var ssdGBTotal = 0
-		var hddGBTotal = 0
-
 		for _, server := range resGetServerList.Server {
 			resGetVolumeList, err := client.RC.GetVolumeList(&pb.ReqGetVolumeList{
 				Volume: &pb.Volume{
@@ -52,19 +48,24 @@ func getVolumeBillingInfo(groupList []*pb.Group) (*[]model.VolumeBill, error) {
 				useType := strings.ToLower(volume.UseType)
 				size, _ := strconv.Atoi(volume.Size)
 
+				// TODO : Should it be change to identify SSD or HDD later?
+				var ssdGBTotal = 0
+				var hddGBTotal = 0
+
 				if useType == "os" {
 					ssdGBTotal += size
 				} else if useType == "data" {
 					hddGBTotal += size
 				}
+
+				billList = append(billList, model.VolumeBill{
+					GroupID:    group.Id,
+					VolumeUUID: volume.UUID,
+					ChargeSSD:  resGetCharge.Charge.ChargeSSDPerGB * int64(ssdGBTotal),
+					ChargeHDD:  resGetCharge.Charge.ChargeHDDPerGB * int64(hddGBTotal),
+				})
 			}
 		}
-
-		billList = append(billList, model.VolumeBill{
-			GroupID:   group.Id,
-			ChargeSSD: resGetCharge.Charge.ChargeSSDPerGB * int64(ssdGBTotal),
-			ChargeHDD: resGetCharge.Charge.ChargeHDDPerGB * int64(hddGBTotal),
-		})
 	}
 
 	return &billList, nil

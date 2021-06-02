@@ -77,6 +77,19 @@ func checkHarp() {
 	}()
 }
 
+// GetSubnet : Get infos of the subnet
+func (rc *RPCClient) GetSubnet(uuid string) (*pb.ResGetSubnet, error) {
+	ctx, cancel := context.WithTimeout(context.Background(),
+		time.Duration(config.Harp.RequestTimeoutMs)*time.Millisecond)
+	defer cancel()
+	resGetSubnet, err := rc.harp.GetSubnet(ctx, &pb.ReqGetSubnet{UUID: uuid})
+	if err != nil {
+		return nil, err
+	}
+
+	return resGetSubnet, nil
+}
+
 // GetSubnetList : Get the list of subnets
 func (rc *RPCClient) GetSubnetList(in *pb.ReqGetSubnetList) (*pb.ResGetSubnetList, error) {
 	ctx, cancel := context.WithTimeout(context.Background(),
@@ -88,6 +101,19 @@ func (rc *RPCClient) GetSubnetList(in *pb.ReqGetSubnetList) (*pb.ResGetSubnetLis
 	}
 
 	return subnetList, nil
+}
+
+// GetAdaptiveIPServer : Get infos of the adaptiveIP server
+func (rc *RPCClient) GetAdaptiveIPServer(serverUUID string) (*pb.ResGetAdaptiveIPServer, error) {
+	ctx, cancel := context.WithTimeout(context.Background(),
+		time.Duration(config.Harp.RequestTimeoutMs)*time.Millisecond)
+	defer cancel()
+	resGetAdaptiveIPServer, err := rc.harp.GetAdaptiveIPServer(ctx, &pb.ReqGetAdaptiveIPServer{ServerUUID: serverUUID})
+	if err != nil {
+		return nil, err
+	}
+
+	return resGetAdaptiveIPServer, nil
 }
 
 // GetAdaptiveIPServerList : Get list of the adaptiveIP server
