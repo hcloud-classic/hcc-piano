@@ -156,7 +156,7 @@ func (bill *Billing) UpdateBillingInfo() {
 		if config.Billing.Debug == "on" {
 			logger.Logger.Println("RunUpdateTimer(): Getting daily_info")
 		}
-		dailyBillList := dao.GetDailyInfo(resGetGroupList.Group, nodeBillList, serverBillList, subnetBillList, adaptiveIPBillList, volumeBillList)
+		dailyBillList := dao.GetDailyInfo(resGetGroupList.Group)
 		if config.Billing.Debug == "on" {
 			logger.Logger.Println("RunUpdateTimer(): Inserting daily_info")
 		}

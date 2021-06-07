@@ -157,29 +157,8 @@ func InsertVolumeBillingInfo(infoList *[]model.VolumeBill) error {
 	return err
 }
 
-func GetDailyInfo(groupList []*pb.Group,
-	nodeBillingList *[]model.NodeBill,
-	serverBillingList *[]model.ServerBill,
-	subnetBillingList *[]model.SubnetBill,
-	adaptiveIPBillingList *[]model.AdaptiveIPBill,
-	volumeBillingList *[]model.VolumeBill) *[]model.DailyBill {
+func GetDailyInfo(groupList []*pb.Group) *[]model.DailyBill {
 	var billList []model.DailyBill
-
-	if nodeBillingList == nil {
-		nodeBillingList = &[]model.NodeBill{}
-	}
-	if serverBillingList == nil {
-		serverBillingList = &[]model.ServerBill{}
-	}
-	if subnetBillingList == nil {
-		subnetBillingList = &[]model.SubnetBill{}
-	}
-	if adaptiveIPBillingList == nil {
-		adaptiveIPBillingList = &[]model.AdaptiveIPBill{}
-	}
-	if volumeBillingList == nil {
-		volumeBillingList = &[]model.VolumeBill{}
-	}
 
 	for _, group := range groupList {
 		if group.Id == 1 {
@@ -191,36 +170,92 @@ func GetDailyInfo(groupList []*pb.Group,
 		var chargeNetwork int64 = 0
 		var chargeVolume int64 = 0
 
-		for _, nodeBilling := range *nodeBillingList {
-			if nodeBilling.GroupID == group.Id {
-				chargeNode += nodeBilling.ChargeCPU +
-					nodeBilling.ChargeMEM +
-					nodeBilling.ChargeNIC
+		current := time.Now()
+
+		res, err := GetBillInfo(group.Id, current.Format("060102"), "daily", "node")
+		if err != nil {
+			logger.Logger.Println("GetDailyInfo(): Failed to get node bill info")
+		} else {
+			for res.Next() {
+				var nodeBill model.NodeBill
+				var uptimeMS int64
+
+				_ = res.Scan(&nodeBill.GroupID,
+					&nodeBill.Date,
+					&nodeBill.NodeUUID,
+					&nodeBill.ChargeCPU,
+					&nodeBill.ChargeMEM,
+					&nodeBill.ChargeNIC,
+					&uptimeMS)
+
+				chargeNode += nodeBill.ChargeCPU + nodeBill.ChargeMEM + nodeBill.ChargeNIC
 			}
 		}
 
-		for _, serverBilling := range *serverBillingList {
-			if serverBilling.GroupID == group.Id {
-				chargeServer += serverBilling.ChargeTraffic
+		res, err = GetBillInfo(group.Id, current.Format("060102"), "daily", "server")
+		if err != nil {
+			logger.Logger.Println("GetDailyInfo(): Failed to get server bill info")
+		} else {
+			for res.Next() {
+				var serverBill model.ServerBill
+				var trafficKB int64
+
+				_ = res.Scan(&serverBill.GroupID,
+					&serverBill.Date,
+					&serverBill.ServerUUID,
+					&serverBill.ChargeTraffic,
+					&trafficKB)
+
+				chargeServer += serverBill.ChargeTraffic
 			}
 		}
 
-		for _, subnetBilling := range *subnetBillingList {
-			if subnetBilling.GroupID == group.Id {
-				chargeNetwork += subnetBilling.ChargeSubnet
+		res, err = GetBillInfo(group.Id, current.Format("060102"), "daily", "subnet")
+		if err != nil {
+			logger.Logger.Println("GetDailyInfo(): Failed to get subnet bill info")
+		} else {
+			for res.Next() {
+				var subnetBill model.SubnetBill
+
+				_ = res.Scan(&subnetBill.GroupID,
+					&subnetBill.Date,
+					&subnetBill.SubnetUUID,
+					&subnetBill.ChargeSubnet)
+
+				chargeNetwork += subnetBill.ChargeSubnet
 			}
 		}
 
-		for _, adaptiveIPBilling := range *adaptiveIPBillingList {
-			if adaptiveIPBilling.GroupID == group.Id {
-				chargeNetwork += adaptiveIPBilling.ChargeAdaptiveIP
+		res, err = GetBillInfo(group.Id, current.Format("060102"), "daily", "adaptiveip")
+		if err != nil {
+			logger.Logger.Println("GetDailyInfo(): Failed to get adaptiveip bill info")
+		} else {
+			for res.Next() {
+				var adaptiveIPBill model.AdaptiveIPBill
+
+				_ = res.Scan(&adaptiveIPBill.GroupID,
+					&adaptiveIPBill.Date,
+					&adaptiveIPBill.ServerUUID,
+					&adaptiveIPBill.ChargeAdaptiveIP)
+
+				chargeNetwork += adaptiveIPBill.ChargeAdaptiveIP
 			}
 		}
 
-		for _, volumeBilling := range *volumeBillingList {
-			if volumeBilling.GroupID == group.Id {
-				chargeVolume += volumeBilling.ChargeSSD +
-					volumeBilling.ChargeHDD
+		res, err = GetBillInfo(group.Id, current.Format("060102"), "daily", "volume")
+		if err != nil {
+			logger.Logger.Println("GetDailyInfo(): Failed to get volume bill info")
+		} else {
+			for res.Next() {
+				var volumeBill model.VolumeBill
+
+				_ = res.Scan(&volumeBill.GroupID,
+					&volumeBill.Date,
+					&volumeBill.VolumeUUID,
+					&volumeBill.ChargeSSD,
+					&volumeBill.ChargeHDD)
+
+				chargeVolume += volumeBill.ChargeSSD + volumeBill.ChargeHDD
 			}
 		}
 
