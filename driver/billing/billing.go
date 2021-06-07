@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"hcc/piano/lib/config"
+	"innogrid.com/hcloud-classic/hcc_errors"
 	"innogrid.com/hcloud-classic/pb"
 	"strconv"
 	"strings"
@@ -271,6 +272,14 @@ func (bill *Billing) readNodeBillingInfo(groupID int64, date, billType string) (
 			return nil, err
 		}
 
+		if resGetNode.HccErrorStack != nil && resGetNode.HccErrorStack.ErrStack != nil {
+			if resGetNode.HccErrorStack.ErrStack[0].ErrCode == hcc_errors.FluteSQLNoResult {
+				resGetNode.Node.UUID += " (Deleted)"
+			} else {
+				resGetNode.Node.UUID = "error"
+			}
+		}
+
 		detailNode.Node = model.Node{
 			UUID:     resGetNode.Node.UUID,
 			CPUCores: int(resGetNode.Node.CPUCores),
@@ -341,6 +350,14 @@ func (bill *Billing) readServerBillingInfo(groupID int64, date, billType string)
 			return nil, err
 		}
 
+		if resGetServer.HccErrorStack != nil && resGetServer.HccErrorStack.ErrStack != nil {
+			if resGetServer.HccErrorStack.ErrStack[0].ErrCode == hcc_errors.ViolinSQLNoResult {
+				resGetServer.Server.ServerName = detailServer.ServerBill.ServerUUID + " (Deleted)"
+			} else {
+				resGetServer.Server.UUID = "error"
+			}
+		}
+
 		detailServer.Server = model.Server{
 			Name:           resGetServer.Server.ServerName,
 			NetworkTraffic: calcTraffic(trafficKB),
@@ -376,6 +393,14 @@ func (bill *Billing) readSubnetBillingInfo(groupID int64, date, billType string)
 			return nil, err
 		}
 
+		if resGetSubnet.HccErrorStack != nil && resGetSubnet.HccErrorStack.ErrStack != nil {
+			if resGetSubnet.HccErrorStack.ErrStack[0].ErrCode == hcc_errors.HarpSQLNoResult {
+				resGetSubnet.Subnet.SubnetName = detailSubnet.SubnetBill.SubnetUUID + " (Deleted)"
+			} else {
+				resGetSubnet.Subnet.SubnetName = "error"
+			}
+		}
+
 		detailSubnet.Subnet = model.Subnet{
 			SubnetName: resGetSubnet.Subnet.SubnetName,
 			DomainName: resGetSubnet.Subnet.DomainName,
@@ -402,6 +427,7 @@ func (bill *Billing) readAdaptiveIPBillingInfo(groupID int64, date, billType str
 
 	for res.Next() {
 		var detailAdaptiveIP model.DetailAdaptiveIP
+		var serverName string
 
 		_ = res.Scan(&detailAdaptiveIP.AdaptiveIPBill.GroupID,
 			&detailAdaptiveIP.AdaptiveIPBill.Date,
@@ -413,13 +439,22 @@ func (bill *Billing) readAdaptiveIPBillingInfo(groupID int64, date, billType str
 			return nil, err
 		}
 
-		resGetServer, err := client.RC.GetServer(resGetAdaptiveIPServer.AdaptiveipServer.ServerUUID)
-		if err != nil {
-			return nil, err
+		if resGetAdaptiveIPServer.HccErrorStack != nil && resGetAdaptiveIPServer.HccErrorStack.ErrStack != nil {
+			if resGetAdaptiveIPServer.HccErrorStack.ErrStack[0].ErrCode == hcc_errors.HarpSQLNoResult {
+				serverName = detailAdaptiveIP.AdaptiveIPBill.ServerUUID + " (Deleted)"
+			} else {
+				serverName = "error"
+			}
+		} else {
+			resGetServer, err := client.RC.GetServer(resGetAdaptiveIPServer.AdaptiveipServer.ServerUUID)
+			if err != nil {
+				return nil, err
+			}
+			serverName = resGetServer.Server.ServerName
 		}
 
 		detailAdaptiveIP.AdaptiveIP = model.AdaptiveIP{
-			ServerName:     resGetServer.Server.ServerName,
+			ServerName:     serverName,
 			PublicIP:       resGetAdaptiveIPServer.AdaptiveipServer.PublicIP,
 			PrivateIP:      resGetAdaptiveIPServer.AdaptiveipServer.PrivateIP,
 			PrivateGateway: resGetAdaptiveIPServer.AdaptiveipServer.PrivateGateway,
@@ -496,6 +531,7 @@ func (bill *Billing) readVolumeBillingInfo(groupID int64, date, billType string)
 			&detailVolume.VolumeBill.ChargeSSD,
 			&detailVolume.VolumeBill.ChargeHDD)
 
+		var volumeFound bool
 		for _, volume := range volumes {
 			if detailVolume.VolumeBill.VolumeUUID == volume.UUID {
 				detailVolume.Volume = model.Volume{
@@ -505,8 +541,15 @@ func (bill *Billing) readVolumeBillingInfo(groupID int64, date, billType string)
 					DiskType:  volume.DiskType,
 					DiskSize:  volume.DiskSize,
 				}
+				volumeFound = true
 
 				break
+			}
+		}
+
+		if !volumeFound {
+			detailVolume.Volume = model.Volume{
+				UUID: detailVolume.VolumeBill.VolumeUUID + " (Deleted)",
 			}
 		}
 
