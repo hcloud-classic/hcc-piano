@@ -441,7 +441,7 @@ func (bill *Billing) readAdaptiveIPBillingInfo(groupID int64, date, billType str
 
 		if resGetAdaptiveIPServer.HccErrorStack != nil && resGetAdaptiveIPServer.HccErrorStack.ErrStack != nil {
 			if resGetAdaptiveIPServer.HccErrorStack.ErrStack[0].ErrCode == hcc_errors.HarpSQLNoResult {
-				serverName = detailAdaptiveIP.AdaptiveIPBill.ServerUUID + " (Deleted)"
+				serverName = detailAdaptiveIP.AdaptiveIPBill.ServerUUID + " (AdaptiveIP Deleted)"
 			} else {
 				serverName = "error"
 			}
