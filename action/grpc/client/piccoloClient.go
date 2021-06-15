@@ -95,10 +95,10 @@ func (rc *RPCClient) GetCharge(groupID int64) (*pb.ResGetCharge, error) {
 	ctx, cancel := context.WithTimeout(context.Background(),
 		time.Duration(config.Piccolo.RequestTimeoutMs)*time.Millisecond)
 	defer cancel()
-	resDeleteNode, err := rc.piccolo.GetCharge(ctx, &pb.ReqGetCharge{GroupID: groupID})
+	resGetCharge, err := rc.piccolo.GetCharge(ctx, &pb.ReqGetCharge{GroupID: groupID})
 	if err != nil {
 		return nil, err
 	}
 
-	return resDeleteNode, nil
+	return resGetCharge, nil
 }
