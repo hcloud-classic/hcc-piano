@@ -489,7 +489,7 @@ func (bill *Billing) readVolumeBillingInfo(groupID int64, date, billType string)
 	for _, server := range resGetServerList.Server {
 		resGetVolumeList, err := client.RC.GetVolumeList(&pb.ReqGetVolumeList{
 			Volume: &pb.Volume{
-				Action:     "read_list",
+				Action:     "single_server_allocated",
 				ServerUUID: server.UUID,
 			},
 			// TODO : Should be control row and page later?
