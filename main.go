@@ -2,8 +2,10 @@ package main
 
 import (
 	"fmt"
+	"hcc/piano/lib/pid"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 
 	"hcc/piano/action/grpc/client"
@@ -19,10 +21,27 @@ import (
 )
 
 func init() {
-	err := logger.Init()
+	pianoRunning, pianoPID, err := pid.IsPianoRunning()
+	if err != nil {
+		fmt.Println(err)
+		panic(err)
+	}
+	if pianoRunning {
+		fmt.Println("piano is already running. (PID: " + strconv.Itoa(pianoPID) + ")")
+		os.Exit(1)
+	}
+	err = pid.WritePianoPID()
+	if err != nil {
+		_ = pid.DeletePianoPID()
+		fmt.Println(err)
+		panic(err)
+	}
+
+	err = logger.Init()
 	if err != nil {
 		hcc_errors.SetErrLogger(logger.Logger)
 		hcc_errors.NewHccError(hcc_errors.PianoInternalInitFail, "logger.Init(): "+err.Error()).Fatal()
+		_ = pid.DeletePianoPID()
 	}
 	hcc_errors.SetErrLogger(logger.Logger)
 
@@ -31,16 +50,19 @@ func init() {
 	err = mysql.Init()
 	if err != nil {
 		hcc_errors.NewHccError(hcc_errors.PianoInternalInitFail, "mysql.Init(): "+err.Error()).Fatal()
+		_ = pid.DeletePianoPID()
 	}
 
 	err = influxdb.Init()
 	if err != nil {
 		hcc_errors.NewHccError(hcc_errors.PianoInternalInitFail, "influxdb.Init(): "+err.Error()).Fatal()
+		_ = pid.DeletePianoPID()
 	}
 
 	err = client.Init()
 	if err != nil {
 		hcc_errors.NewHccError(hcc_errors.PianoInternalInitFail, "client.Init(): "+err.Error()).Fatal()
+		_ = pid.DeletePianoPID()
 	}
 
 	billing.Init()
@@ -51,6 +73,7 @@ func end() {
 	logger.End()
 	client.End()
 	mysql.End()
+	_ = pid.DeletePianoPID()
 }
 
 func main() {
