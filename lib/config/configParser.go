@@ -52,6 +52,55 @@ func parseMysql() {
 
 }
 
+func parseInfluxdb() {
+	config.InfluxdbConfig = conf.Get("influxdb")
+	if config.InfluxdbConfig == nil {
+		hcc_errors.NewHccError(hcc_errors.PianoInternalParsingError, "influxdb config").Fatal()
+	}
+
+	Influxdb.ID, err = config.InfluxdbConfig.String("id")
+	if err != nil {
+		hcc_errors.NewHccError(hcc_errors.PianoInternalParsingError, "influxdb id").Fatal()
+	}
+
+	Influxdb.Address, err = config.InfluxdbConfig.String("address")
+	if err != nil {
+		hcc_errors.NewHccError(hcc_errors.PianoInternalParsingError, "influxdb address").Fatal()
+	}
+
+	Influxdb.Port, err = config.InfluxdbConfig.Int("port")
+	if err != nil {
+		hcc_errors.NewHccError(hcc_errors.PianoInternalParsingError, "influxdb port").Fatal()
+	}
+
+	Influxdb.Db, err = config.InfluxdbConfig.String("database")
+	if err != nil {
+		hcc_errors.NewHccError(hcc_errors.PianoInternalParsingError, "influxdb database").Fatal()
+	}
+}
+
+func parseGrpc() {
+	config.GrpcConfig = conf.Get("grpc")
+	if config.GrpcConfig == nil {
+		hcc_errors.NewHccError(hcc_errors.PianoInternalParsingError, "no grpc section").Fatal()
+	}
+
+	Grpc.Port, err = config.GrpcConfig.Int("port")
+	if err != nil {
+		hcc_errors.NewHccError(hcc_errors.PianoInternalParsingError, err.Error()).Fatal()
+	}
+
+	Grpc.ClientPingIntervalMs, err = config.GrpcConfig.Int("client_ping_interval_ms")
+	if err != nil {
+		hcc_errors.NewHccError(hcc_errors.PianoInternalParsingError, err.Error()).Fatal()
+	}
+
+	Grpc.ClientPingTimeoutMs, err = config.GrpcConfig.Int("client_ping_timeout_ms")
+	if err != nil {
+		hcc_errors.NewHccError(hcc_errors.PianoInternalParsingError, err.Error()).Fatal()
+	}
+}
+
 func parseFlute() {
 	config.FluteConfig = conf.Get("flute")
 	if config.FluteConfig == nil {
@@ -167,60 +216,6 @@ func parsePiccolo() {
 	}
 }
 
-func parseGrpc() {
-	config.GrpcConfig = conf.Get("grpc")
-	if config.GrpcConfig == nil {
-		hcc_errors.NewHccError(hcc_errors.PianoInternalParsingError, "no grpc section").Fatal()
-	}
-
-	Grpc.Port, err = config.GrpcConfig.Int("port")
-	if err != nil {
-		hcc_errors.NewHccError(hcc_errors.PianoInternalParsingError, err.Error()).Fatal()
-	}
-
-	Grpc.ClientPingIntervalMs, err = config.GrpcConfig.Int("client_ping_interval_ms")
-	if err != nil {
-		hcc_errors.NewHccError(hcc_errors.PianoInternalParsingError, err.Error()).Fatal()
-	}
-
-	Grpc.ClientPingTimeoutMs, err = config.GrpcConfig.Int("client_ping_timeout_ms")
-	if err != nil {
-		hcc_errors.NewHccError(hcc_errors.PianoInternalParsingError, err.Error()).Fatal()
-	}
-}
-
-func parseInfluxdb() {
-	config.InfluxdbConfig = conf.Get("influxdb")
-	if config.InfluxdbConfig == nil {
-		hcc_errors.NewHccError(hcc_errors.PianoInternalParsingError, "influxdb config").Fatal()
-	}
-
-	Influxdb.ID, err = config.InfluxdbConfig.String("id")
-	if err != nil {
-		hcc_errors.NewHccError(hcc_errors.PianoInternalParsingError, "influxdb id").Fatal()
-	}
-
-	Influxdb.Password, err = config.InfluxdbConfig.String("password")
-	if err != nil {
-		hcc_errors.NewHccError(hcc_errors.PianoInternalParsingError, "influxdb password").Fatal()
-	}
-
-	Influxdb.Address, err = config.InfluxdbConfig.String("address")
-	if err != nil {
-		hcc_errors.NewHccError(hcc_errors.PianoInternalParsingError, "influxdb address").Fatal()
-	}
-
-	Influxdb.Port, err = config.InfluxdbConfig.Int("port")
-	if err != nil {
-		hcc_errors.NewHccError(hcc_errors.PianoInternalParsingError, "influxdb port").Fatal()
-	}
-
-	Influxdb.Db, err = config.InfluxdbConfig.String("database")
-	if err != nil {
-		hcc_errors.NewHccError(hcc_errors.PianoInternalParsingError, "influxdb database").Fatal()
-	}
-}
-
 func parseBilling() {
 	config.BillingConfig = conf.Get("billing")
 	if config.BillingConfig == nil {
@@ -245,8 +240,8 @@ func Init() {
 	}
 
 	parseMysql()
-	parseGrpc()
 	parseInfluxdb()
+	parseGrpc()
 	parseFlute()
 	parseCello()
 	parseHarp()
