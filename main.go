@@ -47,6 +47,12 @@ func init() {
 
 	config.Init()
 
+	err = client.Init()
+	if err != nil {
+		hcc_errors.NewHccError(hcc_errors.PianoInternalInitFail, "client.Init(): "+err.Error()).Fatal()
+		_ = pid.DeletePianoPID()
+	}
+
 	err = mysql.Init()
 	if err != nil {
 		hcc_errors.NewHccError(hcc_errors.PianoInternalInitFail, "mysql.Init(): "+err.Error()).Fatal()
@@ -59,20 +65,14 @@ func init() {
 		_ = pid.DeletePianoPID()
 	}
 
-	err = client.Init()
-	if err != nil {
-		hcc_errors.NewHccError(hcc_errors.PianoInternalInitFail, "client.Init(): "+err.Error()).Fatal()
-		_ = pid.DeletePianoPID()
-	}
-
 	billing.Init()
 }
 
 func end() {
 	billing.End()
-	logger.End()
-	client.End()
 	mysql.End()
+	client.End()
+	logger.End()
 	_ = pid.DeletePianoPID()
 }
 

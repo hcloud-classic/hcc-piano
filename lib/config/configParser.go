@@ -9,6 +9,18 @@ var conf = goconf.New()
 var config = pianoConfig{}
 var err error
 
+func parseRsakey() {
+	config.RsakeyConfig = conf.Get("rsakey")
+	if config.RsakeyConfig == nil {
+		hcc_errors.NewHccError(hcc_errors.PianoInternalParsingError, "no rsakey section").Fatal()
+	}
+
+	Rsakey.PrivateKeyFile, err = config.RsakeyConfig.String("private_key_file")
+	if err != nil {
+		hcc_errors.NewHccError(hcc_errors.PianoInternalParsingError, err.Error()).Fatal()
+	}
+}
+
 func parseMysql() {
 	config.MysqlConfig = conf.Get("mysql")
 	if config.MysqlConfig == nil {
@@ -17,11 +29,6 @@ func parseMysql() {
 
 	Mysql = mysql{}
 	Mysql.ID, err = config.MysqlConfig.String("id")
-	if err != nil {
-		hcc_errors.NewHccError(hcc_errors.PianoInternalParsingError, err.Error()).Fatal()
-	}
-
-	Mysql.Password, err = config.MysqlConfig.String("password")
 	if err != nil {
 		hcc_errors.NewHccError(hcc_errors.PianoInternalParsingError, err.Error()).Fatal()
 	}
@@ -96,6 +103,39 @@ func parseGrpc() {
 	}
 
 	Grpc.ClientPingTimeoutMs, err = config.GrpcConfig.Int("client_ping_timeout_ms")
+	if err != nil {
+		hcc_errors.NewHccError(hcc_errors.PianoInternalParsingError, err.Error()).Fatal()
+	}
+}
+
+func parseHorn() {
+	config.HornConfig = conf.Get("horn")
+	if config.HornConfig == nil {
+		hcc_errors.NewHccError(hcc_errors.PianoInternalParsingError, "no horn section").Fatal()
+	}
+
+	Horn = horn{}
+	Horn.ServerAddress, err = config.HornConfig.String("horn_server_address")
+	if err != nil {
+		hcc_errors.NewHccError(hcc_errors.PianoInternalParsingError, err.Error()).Fatal()
+	}
+
+	Horn.ServerPort, err = config.HornConfig.Int("horn_server_port")
+	if err != nil {
+		hcc_errors.NewHccError(hcc_errors.PianoInternalParsingError, err.Error()).Fatal()
+	}
+
+	Horn.ConnectionTimeOutMs, err = config.HornConfig.Int("horn_connection_timeout_ms")
+	if err != nil {
+		hcc_errors.NewHccError(hcc_errors.PianoInternalParsingError, err.Error()).Fatal()
+	}
+
+	Horn.ConnectionRetryCount, err = config.HornConfig.Int("horn_connection_retry_count")
+	if err != nil {
+		hcc_errors.NewHccError(hcc_errors.PianoInternalParsingError, err.Error()).Fatal()
+	}
+
+	Horn.RequestTimeoutMs, err = config.HornConfig.Int("horn_request_timeout_ms")
 	if err != nil {
 		hcc_errors.NewHccError(hcc_errors.PianoInternalParsingError, err.Error()).Fatal()
 	}
@@ -239,9 +279,11 @@ func Init() {
 		hcc_errors.NewHccError(hcc_errors.PianoInternalParsingError, err.Error()).Fatal()
 	}
 
+	parseRsakey()
 	parseMysql()
 	parseInfluxdb()
 	parseGrpc()
+	parseHorn()
 	parseFlute()
 	parseCello()
 	parseHarp()
