@@ -36,7 +36,6 @@ func Init() error {
 	hostInfo := HostInfo{
 		URL:      "http://" + config.Influxdb.Address + ":" + strconv.FormatInt(config.Influxdb.Port, 10),
 		Username: config.Influxdb.ID,
-		Password: config.Influxdb.Password,
 	}
 	Influx = InfluxInfo{HostInfo: hostInfo, Database: config.Influxdb.Db}
 	err := Influx.InitInfluxDB()
